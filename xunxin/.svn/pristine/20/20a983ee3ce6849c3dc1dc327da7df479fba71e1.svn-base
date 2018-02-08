@@ -1,0 +1,107 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"   
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.xunxin.dao.pay.RechargeRecordDao">
+
+	<select id="findByOrderId" parameterType="java.lang.Integer" resultType="com.xunxin.vo.account.RechargeRecord">
+		select r.id,r.user_id,r.order_no,r.third_pay_id,r.order_before,r.trade_amount,r.order_end,r.order_time,r.order_accounting_time,r.order_state,r.remark
+		from xunxin_user_account_recharge r 
+		where r.id=#{id}
+	</select>
+
+	<select id="findByOrderNo" parameterType="java.lang.String" resultType="com.xunxin.vo.account.RechargeRecord">
+		select r.id,r.user_id,r.order_no,r.third_pay_id,r.order_before,r.trade_amount,r.order_end,r.order_time,r.order_accounting_time,r.order_state,r.remark
+		from xunxin_user_account_recharge r 
+		where r.order_no=#{orderNo}
+	</select>
+	
+	<select id="findRechargelist" parameterType="com.xunxin.vo.sys.PageData" resultType="com.xunxin.vo.account.RechargeRecord">
+		select r.id,r.user_id,r.order_no,r.third_pay_id,r.order_before,r.trade_amount,r.order_end,r.order_time,r.order_accounting_time,r.order_state,r.remark
+		from xunxin_user_account_recharge r 
+		where 1=1
+		<if test=" orderState != null and orderState != '' ">
+			AND r.order_state=#{orderState}
+		</if>
+		<if test=" orderNo != null and orderNo != '' ">
+			AND r.order_no=#{orderNo}
+		</if>
+	</select>
+
+	<insert id="saveBill" parameterType="com.xunxin.vo.account.RechargeRecord">
+		INSERT INTO xunxin_user_account_recharge (
+			user_id,
+			order_no,
+			third_pay_id,
+			order_before,
+			order_time,
+			order_state
+		)
+		VALUES
+			(
+				#{userId},
+				#{orderNo},
+				#{thirdPayId},
+				#{orderBefore},
+				#{orderTime},
+				#{orderState}
+			)
+	</insert>
+
+	<update id="updateBill" parameterType="com.xunxin.vo.account.RechargeRecord" >
+		UPDATE xunxin_user_account_recharge r
+		SET r.trade_amount = #{trade_amount},
+		 r.order_end = #{order_end},
+		 r.order_accounting_time = now(),
+		 r.order_state = 1
+		where r.order_no = #{order_no} 
+	</update>
+	<!-- 订单支付成功  -->
+	<update id="updateBillState" parameterType="java.lang.String" >
+		UPDATE xunxin_user_account_recharge r
+		set
+		 r.order_state = 0
+		where r.order_no = #{order_no} 
+	</update>
+	<!--获取订单  -->
+	<select id="findRechargeRecordByOrderNo" parameterType="java.lang.String" resultType="com.xunxin.vo.account.RechargeRecord">
+		SELECT
+				r.id,
+				r.user_id AS userId,
+				r.order_no AS orderNo,
+				r.third_pay_id,
+				r.order_before,
+				r.trade_amount,
+				r.order_end,
+				r.order_time,
+				r.order_accounting_time,
+				r.order_state AS orderState,
+				r.remark
+			FROM
+	xunxin_user_account_recharge r
+		where r.order_no=#{orderNo}
+	</select>
+		<insert id="insertBill" parameterType="com.xunxin.vo.account.RechargeRecord">
+		INSERT INTO xunxin_user_account_recharge (
+			user_id,
+			order_no,
+			third_pay_id,
+			order_before,
+			trade_amount,
+			order_end,
+			order_time,
+			order_state
+		)
+		VALUES
+			(
+				#{userId},
+				#{orderNo},
+				#{thirdPayId},
+				#{orderBefore},
+				#{tradeAmount},
+				#{orderEnd},
+				#{orderTime},
+				#{orderState}
+			)
+	</insert>
+	
+</mapper>

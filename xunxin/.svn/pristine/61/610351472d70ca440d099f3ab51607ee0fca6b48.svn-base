@@ -1,0 +1,295 @@
+package com.xunxin.controller.app.square;
+
+import org.apache.log4j.Logger;
+import org.bson.BsonArray;
+import org.bson.BsonDouble;
+import org.bson.Document;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.mongodb.core.query.Criteria;
+import org.springframework.data.mongodb.core.query.Query;
+import org.springframework.data.mongodb.core.query.Update;
+import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.ResponseBody;
+
+import com.mongodb.client.FindIterable;
+import com.mongodb.client.MongoCollection;
+import com.xunxin.config.LuceneEngineutil;
+import com.xunxin.controller.app.message.MessTypeFactory;
+import com.xunxin.controller.system.BaseController;
+import com.xunxin.service.app.AppUserService;
+import com.xunxin.service.app.IMNewsService;
+import com.xunxin.service.app.square.UserBrushAgainstRecordService;
+import com.xunxin.vo.square.Coordinate;
+import com.xunxin.vo.square.UserBrushAgainstRecord;
+import com.xunxin.vo.sys.PageData;
+import com.xunxin.vo.user.UserEntity;
+import com.xunxin.web.api.bean.Response;
+import com.xunxin.web.api.bean.Router;
+
+/**
+ * 
+ * Copyright © 2017 Xunxin Network Technology Co. Ltd.
+ *
+ * @Author Noseparte
+ * @Compile 2018年1月16日 -- 下午12:57:28
+ * @Version 1.0
+ * @Description         擦肩而过
+ */
+@Controller
+@RequestMapping(value=Router.PATH+Router.Brush.PATH)
+public class BrushAgainstController extends BaseController{
+
+    private final static Logger log = Logger.getLogger(BrushAgainstController.class);
+    
+    @Autowired
+    private UserBrushAgainstRecordService userBrushAgainstRecordService;
+    @Autowired
+    private IMNewsService iMNewsService;
+    @Autowired
+    private AppUserService appUserService;
+    
+    /**
+     * 擦肩而过
+     * 
+     * @param userId
+     * @return
+     */
+    @RequestMapping(value=Router.Brush.ISORNOT_OPEN_PUSH,method=RequestMethod.POST)
+    @ResponseBody
+    public Response isOrNot_open_push(@RequestParam("userId") int userId,
+            @RequestParam("longitude") double longitude,@RequestParam("latitude") double latitude) {
+        log.info("infoMsg:--- 用户擦肩而过开始");
+        Response reponse = this.getReponse();
+        PageData pd = new PageData<>();
+        try {
+            Query addCriteria = new Query().addCriteria(Criteria.where("userId").is(userId));
+            UserBrushAgainstRecord record = userBrushAgainstRecordService.findOneByQuery(addCriteria);
+            
+            BsonArray array = new BsonArray();//坐标[longitude, latitude]
+            array.add(new BsonDouble(longitude));//longitude
+            array.add(new BsonDouble(latitude));// latitude
+
+            Document near = new Document();
+            near.put("$nearSphere", array);//表示near查询,单位是“度”
+            near.put("$maxDistance",  100);//最大距离
+            Document p = new Document();
+            p.put("coordinate", near);//坐标在collection中的字段名,你这是loc
+            p.put("isOpen", 1);
+            MongoCollection<Document> collection = LuceneEngineutil.getDatabase().getCollection("userBrushAgainstRecord");//获取数据库里的collection,你这是places
+            Long start = System.currentTimeMillis();
+            FindIterable<Document> dbCursor = collection.find(p).limit(20);//查找20个
+            System.out.println("======查询附件的人耗时："+(System.currentTimeMillis()-start));
+
+            for (Document  cursor : dbCursor) {
+                System.out.println(cursor.toString());
+                Integer anotherUserId = cursor.getInteger("userId");
+                UserEntity user = appUserService.findById(anotherUserId);
+                if(null != user) {
+                    //推送给自己
+                    iMNewsService.userBehaviorPushMessage(MessTypeFactory.PAYY_BY_SELF,anotherUserId,userId,null);
+                    //推送给对方
+                    iMNewsService.userBehaviorPushMessage(MessTypeFactory.PASS_BY_FRIEND,userId,anotherUserId,null);
+                }
+            }
+            
+            if(record != null) {
+                int isOpen = record.getIsOpen();
+                pd.put("isOpen", isOpen);
+            }else {
+                pd.put("isOpen", 0);
+                record = new UserBrushAgainstRecord();
+                record.setIsOpen(0);
+                record.setUserId(userId);
+                Coordinate coordinate = new Coordinate(longitude, latitude);
+                record.setCoordinate(coordinate);
+                userBrushAgainstRecordService.save(record);
+            }
+            log.info("infoMsg:--- 用户擦肩而过结束");
+            return reponse.success(pd);
+        } catch (Exception e) {
+            log.error("errorMsg:{--- 用户擦肩而过失败:" + e.getMessage() + "---}");
+            return reponse.failure(e.getMessage());
+        }
+    }
+    
+    /**
+     * 开启擦肩而过消息推送
+     * 
+     * @param userId
+     * @return
+     */
+    @RequestMapping(value=Router.Brush.OPEN_PUSH,method=RequestMethod.POST)
+    @ResponseBody
+    public Response open_push(@RequestParam("userId") int userId,
+            @RequestParam("longitude") double longitude,@RequestParam("latitude") double latitude) {
+        log.info("infoMsg:--- 用户开启擦肩而过消息推送开始");
+        Response reponse = this.getReponse();
+        PageData pd = new PageData<>();
+        try {
+            Query addCriteria = new Query().addCriteria(Criteria.where("userId").is(userId));
+            UserBrushAgainstRecord record = userBrushAgainstRecordService.findOneByQuery(addCriteria);
+            if(record != null) {
+                int isOpen = record.getIsOpen();
+                pd.put("isOpen", isOpen);
+                Coordinate coordinate = new Coordinate(longitude, latitude);
+                Update update = new Update().set("coordinate", coordinate).set("isOpen", 1);
+                userBrushAgainstRecordService.updateFirst(addCriteria, update);
+            }else {
+                pd.put("isOpen", 0);
+                record = new UserBrushAgainstRecord();
+                record.setIsOpen(0);
+                record.setUserId(userId);
+                Coordinate coordinate = new Coordinate(longitude, latitude);
+                record.setCoordinate(coordinate);
+                userBrushAgainstRecordService.save(record);
+            }
+            log.info("infoMsg:--- 用户开启擦肩而过消息推送结束");
+            return reponse.success();
+        } catch (Exception e) {
+            log.error("errorMsg:{--- 用户开启擦肩而过消息推送开始:" + e.getMessage() + "---}");
+            return reponse.failure(e.getMessage());
+        }
+    }
+    
+    
+    /**
+     * 关闭擦肩而过消息推送
+     * 
+     * @param userId
+     * @return
+     */
+    @RequestMapping(value=Router.Brush.CLOSE_PUSH,method=RequestMethod.POST)
+    @ResponseBody
+    public Response close_push(@RequestParam("userId") int userId) {
+        log.info("infoMsg:--- 用户关闭擦肩而过消息推送开始");
+        Response reponse = this.getReponse();
+        PageData pd = new PageData<>();
+        try {
+            Query addCriteria = new Query().addCriteria(Criteria.where("userId").is(userId));
+            UserBrushAgainstRecord record = userBrushAgainstRecordService.findOneByQuery(addCriteria);
+            if(record != null) {
+                int isOpen = record.getIsOpen();
+                pd.put("isOpen", isOpen);
+                Update update = new Update().set("isOpen", 0);
+                userBrushAgainstRecordService.updateFirst(addCriteria, update);
+            }
+            log.info("infoMsg:--- 用户开启擦肩而过消息推送结束");
+            return reponse.success();
+        } catch (Exception e) {
+            log.error("errorMsg:{--- 用户开启擦肩而过消息推送开始:" + e.getMessage() + "---}");
+            return reponse.failure(e.getMessage());
+        }
+    }
+    
+    
+    
+//    
+//    
+//    
+//    private static MongoClient mongoClient = null;
+//    private static MongoDatabase database = null;
+//    private static ServerAddress serverAddress = null;
+//    private static MongoCredential  credentials  = null;
+//    private static List<ServerAddress> addressLists =new ArrayList<ServerAddress>();
+//    private static List<MongoCredential> credentialsLists = new ArrayList<MongoCredential>();
+//
+//    private static final String IP="192.168.1.122";
+//    private static final int PORT = 10001;
+//
+//    public static void init(){
+//        try{
+//        serverAddress = new ServerAddress(IP,PORT);
+//        addressLists.add(serverAddress);
+//        mongoClient = new MongoClient(addressLists);
+//
+//        }catch (MongoException e)
+//        {
+//            System.out.println(e.toString());
+//        }
+//        if(null != mongoClient){
+//            database = mongoClient.getDatabase("webFramework");
+//        }
+//      
+//    }
+//    
+//    public static void main(String[] args) {
+//        init();
+////        creatDatas();
+//        findNear();
+// }
+//    
+//    public static void findNear() {
+////      db.lbs.find({'coordinate':{$nearSphere: [45.167038, 57.05973], $maxDistance:100}}).limit(10)
+//        
+//        BsonArray array = new BsonArray();//坐标[longitude, latitude]
+//        array.add(new BsonDouble(45.167038d));//longitude
+//        array.add(new BsonDouble(57.05973d));// latitude
+//
+//        Document near = new Document();
+//        near.put("$nearSphere", array);//表示near查询,单位是“度”
+//        near.put("$maxDistance",  100);//最大距离
+//        Document p = new Document();
+//        p.put("coordinate", near);//坐标在collection中的字段名,你这是loc
+//        MongoCollection<Document> collection =database.getCollection("lbs");//获取数据库里的collection,你这是places
+//        Long start =System.currentTimeMillis();
+//        FindIterable<Document> dbCursor = collection.find(p).limit(20);//查找20个
+//        System.out.println("======查询附件的人耗时："+(System.currentTimeMillis()-start));
+//
+//        for (Document  cursor : dbCursor) {
+//            System.out.println(cursor);
+//        }
+//    }
+//    /**
+//     * 1. 随机生成100万个坐标
+//     * 2. 手动创建索引：
+//     * db.lbs.ensureIndex({'coordinate':'2dsphere'})
+//     * 3. shell 查询语句:
+//     * db.lbs.find({'coordinate':{$nearSphere: [45.167038, 57.05973], $maxDistance:2}}).limit(10)
+//     * ps:参考文献（http://blog.csdn.net/huangrunqing/article/details/9112227）
+//     */
+//    public static void creatDatas() {
+//        List<Document> list = new ArrayList<Document>();
+//        MongoCollection<Document> collection =database.getCollection("lbs");
+//
+//         for(int i=0;i<1000000;i++) {
+//             Double[] loc =randomLonLat(30d, 90d, 30d, 90d);
+//             Document newDocument =new Document().append("userID", "user_"+i).append("updateTime", new Date())
+//                     .append("coordinate",new Document().append("longitude",loc[0])
+//                     .append("latitude", loc[1]));
+////           Document newDocument =new Document().append("userID", "user_"+i).append("updateTime", new Date())
+////                   .append("coordinate",loc);
+//             list.add(newDocument);
+//             if(list.size()>10000) {
+//                 collection.insertMany(list);
+//                 list = new ArrayList<Document>();
+//             }
+//         }
+//         if(list.size()>0) {
+//             collection.insertMany(list);
+//             list = new ArrayList<Document>();
+//         }
+//         
+//    }
+//    
+//    /**
+//     * @Title: randomLonLat
+//     * @Description: 在矩形内随机生成经纬度
+//     * @param MinLon：最新经度  MaxLon： 最大经度   MinLat：最新纬度   MaxLat：最大纬度 
+//     * @return
+//     * @throws
+//     */
+//   public static Double[] randomLonLat(double MinLon, double MaxLon, double MinLat, double MaxLat) {
+//     BigDecimal db = new BigDecimal(Math.random() * (MaxLon - MinLon) + MinLon);
+//     String lon = db.setScale(6, BigDecimal.ROUND_HALF_UP).toString();// 小数后6位
+//     db = new BigDecimal(Math.random() * (MaxLat - MinLat) + MinLat);
+//     String lat = db.setScale(6, BigDecimal.ROUND_HALF_UP).toString();
+//     Double[] loc = new Double[2];
+//     loc[0]=Double.valueOf(lon);
+//     loc[1]=Double.valueOf(lat);
+//     return loc;
+//   }
+
+}

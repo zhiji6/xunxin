@@ -1,0 +1,71 @@
+package com.xunxin.service.app.user;
+
+
+import java.util.Date;
+import java.util.List;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.domain.Sort.Direction;
+import org.springframework.data.domain.Sort.Order;
+import org.springframework.data.mongodb.core.query.Criteria;
+import org.springframework.data.mongodb.core.query.Query;
+import org.springframework.stereotype.Repository;
+
+import com.xunxin.dao.impl.app.UserSignDaoImpl;
+import com.xunxin.service.app.SysDictService;
+import com.xunxin.service.app.UserFriendsService;
+import com.xunxin.vo.qa.SysDict;
+import com.xunxin.vo.user.UserSign;
+import com.xunxin.vo.user.UserWelfare;
+
+@Repository
+public class UserSignService extends UserSignDaoImpl{
+
+	@Autowired
+	private UserFriendsService userFriendsService;
+	@Autowired
+	private SysDictService sysDictService;
+	//用户签到
+	public boolean saveSgn(Integer userId) {
+		Date date = new Date();
+		boolean flag = isSign(userId);
+		if(flag){
+			return false;
+		}
+		UserSign sign = new UserSign();
+		sign.setCreateTime(date);
+		sign.setUserId(userId);
+		sign.setIsDelete(false);
+		insert(sign);
+		return true;
+	}
+	//我的福利
+	public UserWelfare queryMyWelfare(Integer userId) {
+		UserWelfare welfare = new UserWelfare();
+		boolean flag = isSign(userId);
+		List<SysDict> listPortrait = sysDictService.findDics("portraitWelfare");
+		List<SysDict> circleWelfare = sysDictService.findDics("portraitWelfare");
+		if(flag){
+			welfare.setIsSign(1);
+		}else{
+			welfare.setIsSign(0);
+		}
+		welfare.setCircleList(circleWelfare);
+		welfare.setSelfPortraitList(listPortrait);
+		return welfare;
+	}
+	//今天是否签到
+	public boolean isSign(Integer userId){
+		Date date = new Date();
+		Date morningHours = userFriendsService.getMorningHours(date);
+		Query query = new Query();
+		query.addCriteria(Criteria.where("userId").is(userId));
+		query.addCriteria(Criteria.where("isDelete").is(false));
+		query.addCriteria(Criteria.where("createTime").gte(morningHours));
+		List<UserSign> list = find(query);
+		return list!=null ? true : false;
+	}
+
+}
+

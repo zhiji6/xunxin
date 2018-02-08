@@ -1,0 +1,375 @@
+package com.xunxin.service.app;
+
+import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+
+import org.apache.log4j.Logger;
+import org.junit.Assert;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+import com.github.pagehelper.Page;
+import com.github.pagehelper.PageHelper;
+import com.xunxin.dao.app.user.AppUserDao;
+import com.xunxin.dao.im.IMRecordMapper;
+import com.xunxin.dao.im.UserFriendsMapper;
+import com.xunxin.util.app.server.example.api.impl.EasemobIMUsers;
+import com.xunxin.util.page.PageInfo;
+import com.xunxin.util.page.PaginationContext;
+import com.xunxin.vo.im.UserFriends;
+import com.xunxin.vo.im.UserRelation;
+import com.xunxin.vo.im.UserReports;
+import com.xunxin.vo.im.UserShields;
+import com.xunxin.vo.user.UserAuthentication;
+import com.xunxin.vo.user.UserEntity;
+
+import io.swagger.client.model.RegisterUsers;
+import io.swagger.client.model.User;
+
+
+@Service("userFriendsService")
+public class UserFriendsService {
+	
+	@Autowired
+	private IMRecordMapper iMRecordMapper;
+	
+	@Autowired
+	private UserFriendsMapper userFriendsMapper;
+	
+	@Autowired
+	private AppUserDao appUserDao;
+	
+	@Autowired
+	private UserShieldsService userShieldsService;
+	
+	@Autowired 
+	private UserReportsService userReportsService;
+	
+	private static final Logger logger = Logger.getLogger(IMRecordService.class);
+	
+	//查询好友
+	public List<UserFriends> findFriends(Integer userId) {
+		List<UserFriends> list = userFriendsMapper.findAllFriendsByUserId(userId);
+		return list;
+//			List<Integer> friends = userFriendsMapper.queryFriendsBy(userId);
+//			
+//			List<Integer> imMysendsIds = iMRecordMapper.queryImMysendsids(userId);
+//				
+//			List<Integer> imSendsMyIds = iMRecordMapper.queryImSendsMyIds(userId);
+//			
+//			imMysendsIds.retainAll(imSendsMyIds);
+//			
+////			imMysendsIds.removeAll(friends);
+//			 for (Iterator<Integer> itA = imMysendsIds.iterator(); itA.hasNext();)
+//		        {
+//		            Integer temp = itA.next();
+//		            for (int i = 0; i < friends.size(); i++)
+//		            {
+//		                if (temp.equals(friends.get(i)))
+//		                {
+//		                    itA.remove();
+//		                }
+//		            }
+//		        }
+//			
+//			List insertList = new ArrayList<UserFriends>();
+//			for (Integer integer : imMysendsIds) {
+//				UserFriends friend = new UserFriends();
+//				friend.setFriendId(integer);
+//				friend.setCreatedate(new Date());
+//				friend.setUpdatedate(new Date());
+//				friend.setUserId(userId);
+//				friend.setIsDelete(0);
+//				friend.setIsReport(0);
+//				friend.setIsShield(0);
+//				friend.setType("friend");
+//				insertList.add(friend);
+//				
+//			}
+//			if(imMysendsIds != null && imMysendsIds.size() >0){
+//				userFriendsMapper.insertFriend(insertList);
+//			}
+			}
+	//环信单个用户注册
+	public void singleregistration(Integer userId) {
+		
+		String phone = appUserDao.findUserPhoneByUserId(userId);
+		EasemobIMUsers easemobIMUsers = new EasemobIMUsers();
+		 RegisterUsers users = new RegisterUsers();
+	        User user = new User().username(phone).password("xunxin"+phone);
+	        users.add(user);
+	        Object result = easemobIMUsers.createNewIMUserSingle(users);
+	        logger.info(result.toString());
+	        Assert.assertNotNull(result);
+//	        JSONObject returnobj = JSON.parseObject(result.toString());
+	}
+	
+	//好友聊天时间
+	public Integer queryChatTime(Integer userId,Integer friendId,Integer number){
+		Date date = new Date();
+		Integer count = 0;
+		for (int i = 1; i <= number; i++) {
+			Date beforeDate = getBeforeDate(date,i);
+			Date monDate = getMorningHours(beforeDate);
+			long maxTime = 24*60*60*1000;
+			maxTime = monDate.getTime() + maxTime;
+			Date maxDate = new Date(maxTime);
+			Map<String, Object> mapUser = new HashMap<String, Object>();
+			mapUser.put("userId", userId);
+			mapUser.put("friendId", friendId);
+			mapUser.put("monDate", monDate);
+			mapUser.put("maxDate", maxDate);
+			Integer num = iMRecordMapper.continuousChat(mapUser);
+			Map<String, Object> mapFriend = new HashMap<String, Object>();
+			mapFriend.put("userId", friendId);
+			mapFriend.put("friendId", userId);
+			mapFriend.put("monDate", monDate);
+			mapFriend.put("maxDate", maxDate);
+			Integer numfriend = iMRecordMapper.continuousChat(mapFriend);
+			if(num != null && num >0 && numfriend!=  null && numfriend >0){
+				count++;
+			}else{
+				return count;
+			}
+		}
+	
+		return count;
+	}
+
+	
+	//计算时间的凌晨时间
+	public Date getMorningHours(Date date){
+		 Calendar cal = Calendar.getInstance();
+		long now = date.getTime();
+		int hour = cal.get(Calendar.HOUR_OF_DAY); 
+	    int minute = cal.get(Calendar.MINUTE); 
+	    int second = cal.get(Calendar.SECOND);
+	    long t = hour*60*60*1000+minute*60*1000+second*1000;
+	    long time =now - t;
+	    Date d = new Date(time);
+		return d;
+		
+	}
+	//获得前一天的时间
+	public  Date getBeforeDate(Date date,Integer num){
+		Date dNow = new Date();   
+		Date dBefore = new Date();
+		Calendar calendar = Calendar.getInstance(); 
+		calendar.setTime(dNow);
+		calendar.add(Calendar.DAY_OF_MONTH, -num);  
+		dBefore = calendar.getTime(); 
+		return dBefore;
+	}
+	public List<UserFriends> findFriendList(Integer userId) {
+		
+		return userFriendsMapper.findAllFriendsByUserId(userId);
+	}
+	//获得前x分钟的时间
+	public static Date getCurrentTime(Integer num){
+		   Calendar beforeTime = Calendar.getInstance();
+		   beforeTime.add(Calendar.MINUTE, -num);
+		   Date beforeD = beforeTime.getTime();
+		return beforeD;  
+		}
+	public List<UserFriends> findAttentionsMe(Integer userId) {
+		List<UserFriends> list = userFriendsMapper.findAttentionsMe(userId);
+		return list;
+//		Date oneMinute = getCurrentTime(1);
+//		Date threeMinute = getCurrentTime(3);
+//		Date ThirtyMinute = getCurrentTime(30);
+//		Date one = getBeforeDate(new Date(),1);
+//		Date three = getBeforeDate(new Date(),3);
+//		Date seven = getBeforeDate(new Date(),7);
+//		for (UserFriends userFriends : list) {
+//			if(userFriends != null && userFriends.getIsLogin() != null && userFriends.getIsLogin().equals(0)){
+//				userFriends.setOnLineTine(0);
+//			}
+//			else if(userFriends != null && userFriends.getCreatedate() != null &&userFriends.getCreatedate().getTime() > oneMinute.getTime()){
+//				userFriends.setOnLineTine(1);
+//			}
+//			else if(userFriends != null && userFriends.getCreatedate() != null &&userFriends.getCreatedate().getTime() > threeMinute.getTime()){
+//				userFriends.setOnLineTine(2);
+//			}
+//			else if(userFriends != null && userFriends.getCreatedate() != null &&userFriends.getCreatedate().getTime() > ThirtyMinute.getTime()){
+//				userFriends.setOnLineTine(3);
+//			}
+//			else if(userFriends != null && userFriends.getCreatedate() != null &&userFriends.getCreatedate().getTime() > one.getTime()){
+//				userFriends.setOnLineTine(4);
+//			}
+//			else if(userFriends != null && userFriends.getCreatedate() != null &&userFriends.getCreatedate().getTime() > three.getTime()){
+//				userFriends.setOnLineTine(5);
+//			}
+//			else if(userFriends != null && userFriends.getCreatedate() != null &&userFriends.getCreatedate().getTime() > seven.getTime()){
+//				userFriends.setOnLineTine(6);
+//			}
+//		}
+	}
+	public List<UserFriends> findAttentionsToMe(Integer userId) {
+		List<UserFriends> list = userFriendsMapper.findAttentionsToMe(userId);
+		return list;
+//		Date oneMinute = getCurrentTime(1);
+//		Date threeMinute = getCurrentTime(3);
+//		Date ThirtyMinute = getCurrentTime(30);
+//		Date one = getBeforeDate(new Date(),1);
+//		Date three = getBeforeDate(new Date(),3);
+//		Date seven = getBeforeDate(new Date(),7);
+//		for (UserFriends userFriends : list) {
+//			if(userFriends != null && userFriends.getIsLogin() != null && userFriends.getIsLogin().equals(0)){
+//				userFriends.setOnLineTine(0);
+//			}
+//			else if(userFriends != null && userFriends.getCreatedate() != null &&userFriends.getCreatedate().getTime() > oneMinute.getTime()){
+//				userFriends.setOnLineTine(1);
+//			}
+//			else if(userFriends != null && userFriends.getCreatedate() != null &&userFriends.getCreatedate().getTime() > threeMinute.getTime()){
+//				userFriends.setOnLineTine(2);
+//			}
+//			else if(userFriends != null && userFriends.getCreatedate() != null &&userFriends.getCreatedate().getTime() > ThirtyMinute.getTime()){
+//				userFriends.setOnLineTine(3);
+//			}
+//			else if(userFriends != null && userFriends.getCreatedate() != null &&userFriends.getCreatedate().getTime() > one.getTime()){
+//				userFriends.setOnLineTine(4);
+//			}
+//			else if(userFriends != null && userFriends.getCreatedate() != null &&userFriends.getCreatedate().getTime() > three.getTime()){
+//				userFriends.setOnLineTine(5);
+//			}
+//			else if(userFriends != null && userFriends.getCreatedate() != null &&userFriends.getCreatedate().getTime() > seven.getTime()){
+//				userFriends.setOnLineTine(6);
+//			}
+//		}
+	}
+	//用户管理体系分页查询
+	public Map findPageList() {
+		List<UserRelation> list = new ArrayList<UserRelation>();
+//        PageHelper.startPage(PaginationContext.getPageNum(), PaginationContext.getPageSize());
+        List<UserEntity> listUser = appUserDao.findAll();
+        for (UserEntity userEntity : listUser) {
+        	UserRelation userRela = new UserRelation();
+        	if(userEntity != null && userEntity.getUid() > 0){
+        		//查询好友
+        		List<UserFriends> listFriends = userFriendsMapper.findAllFriendsByUserId(userEntity.getUid());
+        		//查询关注列表
+        		List<UserFriends> listfollow = userFriendsMapper.findAttentionsToMe(userEntity.getUid());
+        		userRela.setFriendList(listFriends);
+        		userRela.setFollowList(listfollow);
+        		//查询屏蔽列表
+        		List<UserShields> listShield = userShieldsService.findShields(userEntity.getUid());
+        		userRela.setShieldList(listShield);
+        		//查询举报列表
+        		List<UserReports> listReport = userReportsService.findShields(userEntity.getUid());
+        		userRela.setReportList(listReport);
+        		//查询发送消息列表
+        		List<String> listNick = iMRecordMapper.findNickNameByUserId(userEntity.getPhone());
+        		userRela.setUserList(listNick);
+        		userRela.setNickName(userEntity.getNickName());
+        		userRela.setUserId(userEntity.getUid());
+        		list.add(userRela);
+        	}
+		}
+        Integer count =appUserDao.findCount();
+        Map map = new HashMap<String,Object>();
+        map.put("page", PaginationContext.getPageNum());
+        map.put("total", count);
+        map.put("rows", list);
+        return map;
+	}
+	//用户管理体系详情
+	public UserRelation findOneById(Integer id) {
+		UserRelation userRela = new UserRelation();
+		UserEntity userEntity = appUserDao.findById(id);
+   		List<UserFriends> listFriends = userFriendsMapper.findAllFriendsByUserId(userEntity.getUid());
+		//查询关注列表
+		List<UserFriends> listfollow = userFriendsMapper.findAttentionsToMe(userEntity.getUid());
+		userRela.setFriendList(listFriends);
+		userRela.setFollowList(listfollow);
+		//查询屏蔽列表
+		List<UserShields> listShield = userShieldsService.findShields(userEntity.getUid());
+		userRela.setShieldList(listShield);
+		//查询举报列表
+		List<UserReports> listReport = userReportsService.findShields(userEntity.getUid());
+		userRela.setReportList(listReport);
+		//查询发送消息列表
+		List<String> listNick = iMRecordMapper.findNickNameByUserId(userEntity.getPhone());
+		userRela.setUserList(listNick);
+		userRela.setNickName(userEntity.getNickName());
+		userRela.setUserId(userEntity.getUid());
+		return userRela;
+	}
+	public void restructureFriend(Integer id, String idType, Integer userId) {
+		//删除好友
+		if(idType != null && idType.length() > 0 && idType.equals("friends")){
+			userFriendsMapper.deletefriend(userId,id);
+		}
+		//移除屏蔽的人
+		else if(idType != null && idType.length() >0 && idType.equals("shields")){
+			userShieldsService.deleteShield(userId,id);
+			userFriendsMapper.deleteShield(userId,id);
+		}
+		//移除举报的人
+		else if(idType != null && idType.length() > 0 && idType.equals("reports")){
+			userReportsService.deleteReport(userId,id);
+			userFriendsMapper.deleteReport(userId,id);
+		}
+		//移除关注的人
+		else if(idType != null && idType.length() > 0 && idType.equals("follows")){
+			userFriendsMapper.deletefriend(userId,id);
+		}
+	}
+	//关注添加
+	public void saveAttention(Integer userId, Integer another, Integer isDelete) {
+		List<UserFriends> record =userFriendsMapper.findOneByUserIdandFriendId(userId,another);
+		UserFriends attenton = new UserFriends();
+		attenton.setUserId(userId);
+		attenton.setFriendId(another);
+		attenton.setIsDelete(isDelete);
+		attenton.setType("attention");
+		attenton.setCreatedate(new Date());
+		attenton.setUpdatedate(new Date());
+		if(record != null){
+			userFriendsMapper.updateByanother(userId,another,isDelete);
+		}else{
+			userFriendsMapper.insert(attenton);
+		}
+	}
+	//是否关注
+	public boolean isAttention(Integer userId, Integer anotherUserId) {
+		List<UserFriends> attention=  userFriendsMapper.findOneByUserIdandFriendId(userId,anotherUserId);
+		return attention != null || attention.size() >0? true : false;
+	}
+	//删除好友
+	public void deleteFrinds(Integer userId, Integer another) {
+		userFriendsMapper.deletefriend(userId,another);
+		userFriendsMapper.deletefriend(another,userId);
+	}
+	//添加好友
+	public void saveFrinds(Integer userId, Integer another) {
+		saveFriend(userId,another);
+		saveFriend(another,userId);
+		
+	}
+	//添加好友
+	private void saveFriend(Integer userId, Integer another) {
+		List<UserFriends> record =userFriendsMapper.findmyFriend(userId,another);
+		UserFriends attenton = new UserFriends();
+		attenton.setUserId(userId);
+		attenton.setFriendId(another);
+		attenton.setIsDelete(0);
+		attenton.setType("friend");
+		attenton.setCreatedate(new Date());
+		attenton.setUpdatedate(new Date());
+		if(record != null && record.size()>0){
+			userFriendsMapper.updateByanother(userId,another,0);
+		}else{
+			userFriendsMapper.insert(attenton);
+		}
+	}
+	//是否是好友
+	public Boolean queryIsFriend(Integer userId, Integer friendId) {
+		List<UserFriends>  record =userFriendsMapper.findmyFriend(userId,friendId);
+		return record == null || record.size() ==0? true : false;
+	}
+}

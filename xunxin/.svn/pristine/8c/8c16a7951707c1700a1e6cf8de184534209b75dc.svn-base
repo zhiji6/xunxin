@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"   
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.xunxin.dao.app.user.UserRobotDao">
+	
+	<select id="findOneById" parameterType="java.lang.Integer" resultType="com.xunxin.vo.user.UserRobot">
+		SELECT pid,name,ID,nickName,gender,ishiden
+		from xunxin_user_robot a 
+		where a.pid = #{pid}
+	</select>
+	
+	<select id="findOneByName" parameterType="java.lang.String" resultType="com.xunxin.vo.user.UserRobot">
+		SELECT pid,name,ID,nickName,gender,ishiden
+		from xunxin_user_robot a 
+		where a.ishiden = 0 and 
+			<if test=" username != null and username != '' ">
+				a.adminName = #{username}
+			</if>
+	</select>
+	
+	<select id="findAll" resultType="com.xunxin.vo.user.UserRobot">
+		SELECT pid,name,ID,nickName,gender,ishiden
+		from xunxin_user_robot 
+		where ishiden = 0
+	</select>
+	
+    <insert id="insert" parameterType="com.xunxin.vo.user.UserRobot">
+        INSERT INTO xunxin_user_robot (
+		    name,
+		    nickName,
+		    ID,
+		    gender,
+		    ishiden
+		)
+		VALUES
+		    (
+		        #{name},
+		        #{nickName},
+		        #{ID},
+		        #{gender},
+		        #{ishiden}
+		    )
+    </insert>
+
+    <delete id="pid">
+        delete from t_user where id in (
+        <foreach collection="IDS" item="id" separator=",">
+            #{id}
+        </foreach>
+        )  
+    </delete>
+    
+    <update id="update">
+    
+    </update>
+
+</mapper>

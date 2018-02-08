@@ -1,0 +1,67 @@
+package com.xunxin.controller.app.message;
+
+public class MessTypeFactory {
+	
+	public static final Integer MESSAGE_LEAVE = 1;  //置顶
+	public static final Integer MESSAGE_REPORT = 2;  //举报
+	public static final Integer MESSAGE_NOT_THROUGH = 3;  //审核不通过
+	public static final Integer MESSAGE_THROUGH = 4;  //审核通过
+	public static final Integer MESSAGE_GIVE_UP = 5;  //、点赞
+	public static final Integer MESSAGE_COMMENT = 6;  //评论》动态
+	public static final Integer MESSAGE_MATCH = 7;  //匹配
+	public static final Integer MESSAGE_FOLLOW = 8;  //关注
+	public static final Integer MESSAGE_ANSWER = 9;  //评论》观点
+	public static final Integer MESSAGE_PAY = 10;  //支付
+	public static final Integer PAYY_BY_SELF = 12;  //支付
+	public static final Integer PASS_BY_FRIEND = 13;  //支付
+	
+	 private volatile static MessTypeFactory messTypeFactory;
+	 
+	 private MessTypeFactory (){} 
+	 
+	    public static MessTypeFactory getSingleton() {  
+		        if (messTypeFactory == null) {  
+		            synchronized (MessTypeFactory.class) {  
+			            if (messTypeFactory == null) {  
+			            	messTypeFactory = new MessTypeFactory();  
+			            }  
+		            }  
+		        }  
+		        return messTypeFactory;  
+	        }
+	    
+	    
+	   public  Message getMessage(Integer type){
+	      if(type == null){
+	         return null;
+	      }        
+	      if(type.equals(1)){
+	    	  return new LeaveMessage();
+	      } else if(type.equals(2)){
+	    	  return new ReportMessage();
+	      } else if(type.equals(3)){
+	    	  return new NotThrough();
+	      }else if(type.equals(4)){
+	    	  return new ThroughMessage();
+	      }else if(type.equals(5)){
+	    	  return new GiveUpMessage();
+	      }else if(type.equals(6)){
+	    	  return new CommentMessage();
+	      }else if(type.equals(7)){
+	    	  return new MatchingMessage();
+	      }else if(type.equals(8)){
+	    	  return new FollowMessage();
+	      }else if(type.equals(9)){
+	    	  return new AnswerMessage();
+	      }else if(type.equals(10)){
+	    	  return new AppStorePayMessage();
+	      }else if(type.equals(11)){
+	    	  return new CircleCommentMessage();
+	      }else if(type.equals(12)){
+	    	  return new PassBySelfMessage();
+	      }else if(type.equals(13)){
+	    	  return new PassByFriend();
+	      }
+	      return null;
+	   }
+}

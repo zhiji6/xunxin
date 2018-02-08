@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"   
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.xunxin.dao.pay.RechargeRecordDao">
+
+	<select id="findByOrderNo" parameterType="java.lang.String" resultType="com.xunxin.vo.account.RechargeRecord">
+		select r.id,r.user_id,r.order_no,r.third_pay_id,r.order_before,r.trade_amount,r.order_end,r.order_time,r.order_accounting_time,r.order_state,r.remark
+		from xunxin_user_account_recharge r 
+		where r.order_no=#{order_no}
+	</select>
+
+	<insert id="saveBill" parameterType="com.xunxin.vo.account.RechargeRecord">
+		INSERT INTO xunxin_user_account_recharge (
+			user_id,
+			order_no,
+			third_pay_id,
+			order_before,
+			order_time,
+			order_state
+		)
+		VALUES
+			(
+				#{userId},
+				#{orderNo},
+				#{thirdPayId},
+				#{orderBefore},
+				#{orderTime},
+				#{orderState}
+			)
+	</insert>
+
+	<update id="updateBill" parameterType="com.xunxin.vo.account.RechargeRecord" >
+		UPDATE xunxin_user_account_recharge r
+		SET r.trade_amount = #{trade_amount},
+		 r.order_end = #{order_end},
+		 r.order_accounting_time = now(),
+		 r.order_state = 1
+		where r.order_no = #{order_no} 
+	</update>
+
+	
+</mapper>

@@ -1,0 +1,294 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.xunxin.dao.qa.XunxinUserAuditMapper" >
+  <resultMap id="BaseResultMap" type="com.xunxin.vo.qa.XunxinUserAudit" >
+    <id column="id" property="id" jdbcType="INTEGER" />
+    <result column="user_id" property="userId" jdbcType="INTEGER" />
+    <result column="answer_proportion" property="answerProportion" jdbcType="DOUBLE" />
+    <result column="is_delete" property="isDelete" jdbcType="VARCHAR" />
+    <result column="type" property="type" jdbcType="TINYINT" />
+    <result column="create_time" property="createTime" jdbcType="TIMESTAMP" />
+    <result column="update_time" property="updateTime" jdbcType="TIMESTAMP" />
+  </resultMap>
+  <sql id="Example_Where_Clause" >
+    <where >
+      <foreach collection="oredCriteria" item="criteria" separator="or" >
+        <if test="criteria.valid" >
+          <trim prefix="(" suffix=")" prefixOverrides="and" >
+            <foreach collection="criteria.criteria" item="criterion" >
+              <choose >
+                <when test="criterion.noValue" >
+                  and ${criterion.condition}
+                </when>
+                <when test="criterion.singleValue" >
+                  and ${criterion.condition} #{criterion.value}
+                </when>
+                <when test="criterion.betweenValue" >
+                  and ${criterion.condition} #{criterion.value} and #{criterion.secondValue}
+                </when>
+                <when test="criterion.listValue" >
+                  and ${criterion.condition}
+                  <foreach collection="criterion.value" item="listItem" open="(" close=")" separator="," >
+                    #{listItem}
+                  </foreach>
+                </when>
+              </choose>
+            </foreach>
+          </trim>
+        </if>
+      </foreach>
+    </where>
+  </sql>
+  <sql id="Update_By_Example_Where_Clause" >
+    <where >
+      <foreach collection="example.oredCriteria" item="criteria" separator="or" >
+        <if test="criteria.valid" >
+          <trim prefix="(" suffix=")" prefixOverrides="and" >
+            <foreach collection="criteria.criteria" item="criterion" >
+              <choose >
+                <when test="criterion.noValue" >
+                  and ${criterion.condition}
+                </when>
+                <when test="criterion.singleValue" >
+                  and ${criterion.condition} #{criterion.value}
+                </when>
+                <when test="criterion.betweenValue" >
+                  and ${criterion.condition} #{criterion.value} and #{criterion.secondValue}
+                </when>
+                <when test="criterion.listValue" >
+                  and ${criterion.condition}
+                  <foreach collection="criterion.value" item="listItem" open="(" close=")" separator="," >
+                    #{listItem}
+                  </foreach>
+                </when>
+              </choose>
+            </foreach>
+          </trim>
+        </if>
+      </foreach>
+    </where>
+  </sql>
+  <sql id="Base_Column_List" >
+    id, user_id, answer_proportion, is_delete, type, create_time, update_time
+  </sql>
+  <select id="selectByExample" resultMap="BaseResultMap" parameterType="com.xunxin.vo.qa.XunxinUserAuditExample" >
+    select
+    <if test="distinct" >
+      distinct
+    </if>
+    <include refid="Base_Column_List" />
+    from xunxin_user_audit
+    <if test="_parameter != null" >
+      <include refid="Example_Where_Clause" />
+    </if>
+    <if test="orderByClause != null" >
+      order by ${orderByClause}
+    </if>
+  </select>
+  <select id="selectByPrimaryKey" resultMap="BaseResultMap" parameterType="java.lang.Integer" >
+    select 
+    <include refid="Base_Column_List" />
+    from xunxin_user_audit
+    where id = #{id,jdbcType=INTEGER}
+  </select>
+  <delete id="deleteByPrimaryKey" parameterType="java.lang.Integer" >
+    delete from xunxin_user_audit
+    where id = #{id,jdbcType=INTEGER}
+  </delete>
+  <delete id="deleteByExample" parameterType="com.xunxin.vo.qa.XunxinUserAuditExample" >
+    delete from xunxin_user_audit
+    <if test="_parameter != null" >
+      <include refid="Example_Where_Clause" />
+    </if>
+  </delete>
+  <insert id="insert" parameterType="com.xunxin.vo.qa.XunxinUserAudit" >
+    insert into xunxin_user_audit (id, user_id, answer_proportion, 
+      is_delete, type, create_time, 
+      update_time)
+    values (#{id,jdbcType=INTEGER}, #{userId,jdbcType=INTEGER}, #{answerProportion,jdbcType=DOUBLE}, 
+      #{isDelete,jdbcType=VARCHAR}, #{type,jdbcType=TINYINT}, #{createTime,jdbcType=TIMESTAMP}, 
+      #{updateTime,jdbcType=TIMESTAMP})
+  </insert>
+  <insert id="insertSelective" parameterType="com.xunxin.vo.qa.XunxinUserAudit" >
+    insert into xunxin_user_audit
+    <trim prefix="(" suffix=")" suffixOverrides="," >
+      <if test="id != null" >
+        id,
+      </if>
+      <if test="userId != null" >
+        user_id,
+      </if>
+      <if test="answerProportion != null" >
+        answer_proportion,
+      </if>
+      <if test="isDelete != null" >
+        is_delete,
+      </if>
+      <if test="type != null" >
+        type,
+      </if>
+      <if test="createTime != null" >
+        create_time,
+      </if>
+      <if test="updateTime != null" >
+        update_time,
+      </if>
+    </trim>
+    <trim prefix="values (" suffix=")" suffixOverrides="," >
+      <if test="id != null" >
+        #{id,jdbcType=INTEGER},
+      </if>
+      <if test="userId != null" >
+        #{userId,jdbcType=INTEGER},
+      </if>
+      <if test="answerProportion != null" >
+        #{answerProportion,jdbcType=DOUBLE},
+      </if>
+      <if test="isDelete != null" >
+        #{isDelete,jdbcType=VARCHAR},
+      </if>
+      <if test="type != null" >
+        #{type,jdbcType=TINYINT},
+      </if>
+      <if test="createTime != null" >
+        #{createTime,jdbcType=TIMESTAMP},
+      </if>
+      <if test="updateTime != null" >
+        #{updateTime,jdbcType=TIMESTAMP},
+      </if>
+    </trim>
+  </insert>
+  <select id="countByExample" parameterType="com.xunxin.vo.qa.XunxinUserAuditExample" resultType="java.lang.Integer" >
+    select count(*) from xunxin_user_audit
+    <if test="_parameter != null" >
+      <include refid="Example_Where_Clause" />
+    </if>
+  </select>
+  <update id="updateByExampleSelective" parameterType="map" >
+    update xunxin_user_audit
+    <set >
+      <if test="record.id != null" >
+        id = #{record.id,jdbcType=INTEGER},
+      </if>
+      <if test="record.userId != null" >
+        user_id = #{record.userId,jdbcType=INTEGER},
+      </if>
+      <if test="record.answerProportion != null" >
+        answer_proportion = #{record.answerProportion,jdbcType=DOUBLE},
+      </if>
+      <if test="record.isDelete != null" >
+        is_delete = #{record.isDelete,jdbcType=VARCHAR},
+      </if>
+      <if test="record.type != null" >
+        type = #{record.type,jdbcType=TINYINT},
+      </if>
+      <if test="record.createTime != null" >
+        create_time = #{record.createTime,jdbcType=TIMESTAMP},
+      </if>
+      <if test="record.updateTime != null" >
+        update_time = #{record.updateTime,jdbcType=TIMESTAMP},
+      </if>
+    </set>
+    <if test="_parameter != null" >
+      <include refid="Update_By_Example_Where_Clause" />
+    </if>
+  </update>
+  <update id="updateByExample" parameterType="map" >
+    update xunxin_user_audit
+    set id = #{record.id,jdbcType=INTEGER},
+      user_id = #{record.userId,jdbcType=INTEGER},
+      answer_proportion = #{record.answerProportion,jdbcType=DOUBLE},
+      is_delete = #{record.isDelete,jdbcType=VARCHAR},
+      type = #{record.type,jdbcType=TINYINT},
+      create_time = #{record.createTime,jdbcType=TIMESTAMP},
+      update_time = #{record.updateTime,jdbcType=TIMESTAMP}
+    <if test="_parameter != null" >
+      <include refid="Update_By_Example_Where_Clause" />
+    </if>
+  </update>
+  <update id="updateByPrimaryKeySelective" parameterType="com.xunxin.vo.qa.XunxinUserAudit" >
+    update xunxin_user_audit
+    <set >
+      <if test="userId != null" >
+        user_id = #{userId,jdbcType=INTEGER},
+      </if>
+      <if test="answerProportion != null" >
+        answer_proportion = #{answerProportion,jdbcType=DOUBLE},
+      </if>
+      <if test="isDelete != null" >
+        is_delete = #{isDelete,jdbcType=VARCHAR},
+      </if>
+      <if test="type != null" >
+        type = #{type,jdbcType=TINYINT},
+      </if>
+      <if test="createTime != null" >
+        create_time = #{createTime,jdbcType=TIMESTAMP},
+      </if>
+      <if test="updateTime != null" >
+        update_time = #{updateTime,jdbcType=TIMESTAMP},
+      </if>
+    </set>
+    where id = #{id,jdbcType=INTEGER}
+  </update>
+  <update id="updateByPrimaryKey" parameterType="com.xunxin.vo.qa.XunxinUserAudit" >
+    update xunxin_user_audit
+    set user_id = #{userId,jdbcType=INTEGER},
+      answer_proportion = #{answerProportion,jdbcType=DOUBLE},
+      is_delete = #{isDelete,jdbcType=VARCHAR},
+      type = #{type,jdbcType=TINYINT},
+      create_time = #{createTime,jdbcType=TIMESTAMP},
+      update_time = #{updateTime,jdbcType=TIMESTAMP}
+    where id = #{id,jdbcType=INTEGER}
+  </update>
+  
+   <select id="findListUserId" resultMap="BaseResultMap"  parameterType="java.lang.Integer" >
+    select
+    
+      distinct
+    
+    <include refid="Base_Column_List" />
+    from xunxin_user_audit
+    
+    where user_id = #{userId,jdbcType=INTEGER}
+      order by answer_proportion
+    
+  </select>
+  
+     <select id="findAuditUserLogin" parameterType="java.lang.Integer" resultMap="BaseResultMap"   >
+    select
+      distinct 
+    a.id, a.user_id, a.answer_proportion, a.is_delete, a.type, a.create_time, a.update_time
+    from xunxin_user_audit a
+	LEFT JOIN xunxin_user u ON a.user_id = u.uid
+	WHERE
+		1 = 1
+	AND u.is_login = 1
+	AND a.is_delete = 0
+	AND a.type = #{type,jdbcType=INTEGER}
+	ORDER BY
+		rand()
+	LIMIT #{auditNum,jdbcType=INTEGER}
+    
+  </select>
+  
+  <select id="findAuditTimerTaskUserLogin" resultMap="BaseResultMap"  parameterType="java.util.Map" >
+    select
+     <!--  distinct -->
+    a.id, a.user_id, a.answer_proportion, a.is_delete, a.type, a.create_time, a.update_time
+    from xunxin_user_audit a
+	LEFT JOIN xunxin_user u ON a.user_id = u.uid
+	WHERE
+		1 = 1
+	AND u.is_login = 1
+	AND a.is_delete = 0
+	AND a.type = #{type,jdbcType=INTEGER}
+    <foreach collection="userIds" item="userId" open="and user_id not in(" close=")" separator=",">  
+        #{userId}  
+    </foreach>
+	
+	ORDER BY
+		rand()
+	LIMIT #{auditNum,jdbcType=INTEGER} 
+    
+  </select>
+</mapper>

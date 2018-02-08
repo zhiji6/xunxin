@@ -1,0 +1,493 @@
+package com.xunxin.controller.app.user;
+
+import java.text.NumberFormat;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Random;
+import java.util.Set;
+
+import org.apache.commons.lang3.StringUtils;
+import org.apache.log4j.Logger;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.domain.Sort.Direction;
+import org.springframework.data.domain.Sort.Order;
+import org.springframework.data.mongodb.core.query.Criteria;
+import org.springframework.data.mongodb.core.query.Query;
+import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.ResponseBody;
+
+import com.xunxin.config.JedisUtil;
+import com.xunxin.controller.app.message.MessTypeFactory;
+import com.xunxin.controller.system.BaseController;
+import com.xunxin.service.ArecordService;
+import com.xunxin.service.app.AppUserService;
+import com.xunxin.service.app.IMNewsService;
+import com.xunxin.service.app.MessageService;
+import com.xunxin.service.app.QASectionService;
+import com.xunxin.service.app.UserFriendsService;
+import com.xunxin.service.app.qa.XTagLibraryService;
+import com.xunxin.service.app.user.UserAuthenticationService;
+import com.xunxin.service.app.user.UserInterestPointService;
+import com.xunxin.service.app.user.UserSelfPortraitService;
+import com.xunxin.util.MapRemoveNullUtil;
+import com.xunxin.util.SortAlgorithmUtils;
+import com.xunxin.util.app.IDGeneratorUtil;
+import com.xunxin.vo.qa.ArecordVO;
+import com.xunxin.vo.qa.QASection;
+import com.xunxin.vo.qa.XTagLibrary;
+import com.xunxin.vo.sys.PageData;
+import com.xunxin.vo.user.UserAuthentication;
+import com.xunxin.vo.user.UserEntity;
+import com.xunxin.vo.user.UserInterestPoint;
+import com.xunxin.vo.user.UserSelfPortraitVO;
+import com.xunxin.web.api.bean.Response;
+import com.xunxin.web.api.bean.Router;
+
+/**
+ * Copyright © 2017 noseparte(Libra) © Like the wind, like rain
+ * @Author Noseparte
+ * @Compile 2017年10月12日 -- 下午3:49:38
+ * @Version 1.0
+ * @Description	APP用戶基本操作
+ */
+@Controller
+@RequestMapping(value=Router.PATH)
+public class OperationController extends BaseController{
+
+	private static final Logger log = Logger.getLogger(OperationController.class);
+	
+	@Autowired
+	private AppUserService appUserService;
+	@Autowired
+	private MessageService messageService;
+	@Autowired
+	private IMNewsService iMNewsService;
+	@Autowired
+	private ArecordService arecordService;
+	@Autowired
+	private QASectionService qASectionService;
+	@Autowired
+	private UserSelfPortraitService userSelfPortraitService;
+	@Autowired
+	private UserAuthenticationService userAuthenticationService;
+	@Autowired
+	private UserInterestPointService userInterestPointService;
+	@Autowired
+	private XTagLibraryService xTagLibraryService;
+	@Autowired
+	private UserFriendsService userFriendsService;
+	/**
+	 * APP端 用户登录
+	 * 
+	 * @param model
+	 * @return
+	 */
+	@RequestMapping(value=Router.LOGIN,method=RequestMethod.POST)
+	@ResponseBody
+	public Response sign_In(@RequestParam("phone") String phone,@RequestParam("password") String password) {
+		log.info("infoMsg:--- 用户登录开始");
+		Response res = this.getReponse();
+		PageData pd = new PageData<>();
+		try {
+			UserEntity user = appUserService.login(phone,password);
+			pd.put("uid", user.getUid());
+			pd.put("phone", user.getPhone());
+			if(user.getGender() == null) {
+				pd.put("gender", "");
+			}else {
+				pd.put("gender", user.getGender());
+			}
+			pd.put("isCompleteBasic", user.getIsCompleteBasic());
+			pd.put("nickName", user.getNickName());
+			log.info("infoMsg:--- 用户登录结束");
+			return res.success(pd);
+		} catch (Exception e) {
+			log.error("errorMsg:{---用户登录失败," + e.getMessage() + "---}");
+			return res.failure(e.getMessage());
+		}
+	}
+	
+	/**
+	 * APP 修改密码
+	 * 
+	 * @param phone
+	 * @param preWord
+	 * @param newWord
+	 * @return
+	 */
+	@RequestMapping(value=Router.User.UPDATE_PASSWORD,method=RequestMethod.POST)
+	@ResponseBody
+	public Response update_password(@RequestParam("phone") String phone,String preWord,String newWord) {
+		log.info("InfoMsg:--- update_password start");
+		Response response = this.getReponse();
+		try {
+			boolean result = appUserService.update_password(phone,preWord,newWord);
+			if(result) {
+				log.info("InfoMsg:--- update_password end");
+				return response.success("修改成功");
+			}else {
+				log.info("erroroMsg:--- update_password occur error");
+				return response.failure("修改失败");
+			}
+		} catch (Exception e) {
+			log.error("erroroMsg:{--- update_password occur error." + e.getMessage() + "---}");
+			return response.failure(e.getMessage());
+		}
+	}
+	
+	
+	/**
+	 * 验证验证码
+	 * 
+	 * @param phone
+	 * @param verifyCode
+	 * @return
+	 */
+	@RequestMapping(value=Router.User.VERIFY_CODE,method=RequestMethod.POST)
+	@ResponseBody
+	public Response verify_code(@RequestParam("phone") String phone,@RequestParam("verifyCode") String verifyCode) {
+		log.info("infoMsg:--- 验证码验证开始");
+		Response reponse = this.getReponse();
+		String message = "";
+		int code = messageService.findforgetLastOneByPhone(phone);
+		if(code == Integer.parseInt(verifyCode)) {
+			message = "success";
+			log.info("infoMsg:--- 验证码验证结束");
+			return reponse.success(message);
+		}else {
+			message = "验证码有误";
+			return reponse.failure(message);
+		}
+		
+	}
+	
+	/**
+	 * APP 忘记密码
+	 * 
+	 * @param phone
+	 * @param verifyCode
+	 * @param newWord
+	 * @return
+	 */
+	@RequestMapping(value=Router.User.FORGET_PASSWORD,method=RequestMethod.POST)
+	@ResponseBody
+	public Response forget_password(@RequestParam("phone") String phone,String newWord) {
+		log.info("InfoMsg:--- forget_password start");
+		Response response = this.getReponse();
+		try {
+			boolean result = appUserService.forget_password(phone,newWord);
+			log.info("InfoMsg:--- forget_password end");
+			return response.success("修改成功");
+		} catch (Exception e) {
+			log.error("erroroMsg:--- forget_password occur error." + e.getMessage());
+			return response.failure(e.getMessage());
+		}
+	}
+	
+	
+	/**
+	 * 生成系统ID
+	 * 
+	 * @return
+	 */
+	@RequestMapping(value=Router.ID_GENERATOR,method=RequestMethod.GET)
+	@ResponseBody
+	public Response ID_Generator() {
+		log.info("InfoMsg:--- ID_Generator start");
+		Response reponse = this.getReponse();
+		try {
+			IDGeneratorUtil.generateAppCode2Disk();
+			log.info("InfoMsg:--- ID_Generator end");
+			return reponse.success();
+		} catch (Exception e) {
+			log.error("errorMsg:--- ID_Generator occur error");	
+			return reponse.failure(e.getMessage());
+		}
+	}
+	
+	/**
+	 * 匹配一下
+	 * 
+	 * @param userId
+	 * @param anotherUserId
+	 * @return
+	 */
+	@RequestMapping(value=Router.MATCH_ONCE,method=RequestMethod.POST)
+	@ResponseBody
+	public Response match_once(@RequestParam("userId") int userId,@RequestParam("anotherUserId") int anotherUserId) {
+		log.info("infoMsg:--- 匹配一下开始");
+		Response reponse = this.getReponse();
+		PageData pd = new PageData<>();
+		try {
+		  //我答过的
+            Query areQuery = new Query()
+                    .addCriteria(Criteria.where("answerID").is(userId));
+            int arecordCount = arecordService.findCountByQuery(areQuery);
+            JedisUtil jedisUtil = JedisUtil.getInstance();    
+            JedisUtil.Strings String = jedisUtil.new Strings();  
+            if(arecordCount <= Integer.parseInt(String.get("arecordCount"))) {
+                Random rad=new Random();
+                int nextInt = rad.nextInt(50) + 1;
+                pd.put("result", nextInt);
+                if(nextInt>90){
+                	userFriendsService.saveFrinds(userId,anotherUserId);
+                }
+            }else {
+//			MongoDatabase mdb=MongoDBUtil.getDatabase();
+//			MongoCollection<Document> document =mdb.getCollection("arecordVO");
+//			Long begin =System.currentTimeMillis();
+//			List<String> userList = FastMatchService.getRecordByName(userId,document);
+//			List<String> anotherUserList = FastMatchService.getRecordByName(anotherUserId,document);
+//			List<String> matchResult = FastMatchService.receiveCollectionList(userList,anotherUserList);
+//			Long end =System.currentTimeMillis();
+//			System.out.println("****匹配到zhangsan与lisi共有相同的答题记录数据为："+matchResult.size());
+//			System.out.println("****匹配花费时间："+(end - begin));
+//			System.out.println("****部分相同数据如下：");
+//			for(int i=0;i<10;i++) {
+//				System.out.println(matchResult.get(i));
+//			}
+//			for(int i=0;i<10;i++) {
+//				System.out.println(matchResult.get(i));
+//			}
+                Random rad=new Random();
+                int nextInt = rad.nextInt(50) + 50;
+                pd.put("result", nextInt);
+                if(nextInt>90){
+                	userFriendsService.saveFrinds(userId,anotherUserId);
+                }
+            }
+            iMNewsService.userBehaviorPushMessage(MessTypeFactory.MESSAGE_MATCH,anotherUserId,userId,null);
+            iMNewsService.save(userId,anotherUserId);
+			log.info("infoMsg:--- 匹配一下结束");
+			return reponse.success(pd);
+		} catch (Exception e) {
+			log.error("errorMsg:--- 匹配一下失败");
+			return reponse.failure();
+		}
+	}
+	
+	
+	/**
+	 * ab自画像匹配    
+	 * 
+	 * @param userId           查看者
+	 * @param anotherUserId    被查看者
+	 * @return
+	 */
+	@RequestMapping(value=Router.QUERY_MATCH_TOGETHER,method=RequestMethod.POST)
+	@ResponseBody
+	public Response query_match_together(@RequestParam("userId") Integer userId,@RequestParam("anotherUserId") Integer anotherUserId) {
+	    log.info("infoMsg:--- 获取ab自画像匹配开始");
+	    Response reponse = this.getReponse();
+        PageData spInfo = new PageData<>();
+        List<PageData> resultList = new ArrayList<>();
+        Map<Short,Integer> map = new HashMap<>();
+        int temp = 0;
+	    try {
+	        //我答过的
+            Query arecordQuery = new Query()
+                    .addCriteria(Criteria.where("answerID").is(anotherUserId));
+            int arecordCount = arecordService.findCountByQuery(arecordQuery);
+	        UserSelfPortraitVO vo = userSelfPortraitService.findById(anotherUserId);
+            if(vo != null) {
+                if(StringUtils.isBlank(vo.getExtraInfo()) || StringUtils.trim(vo.getExtraInfo()).equals("")) {
+                    //固定信息
+                    Map<String, Object> usualInfo = appUserService.getUsualInfo(anotherUserId);
+                    spInfo.put("usualInfo", usualInfo);
+                }else {
+                    Map<String, Object> usualInfo = appUserService.getUsualInfo(anotherUserId);
+                    String[] split = vo.getExtraInfo().replace("[", "").replace("]", "").trim().split(",");
+                    for(String str : split) {
+                        usualInfo.put(str.toString(), appUserService.getByColum(anotherUserId,str.toString()));
+                    }
+                    spInfo.put("extraInfo", vo.getExtraInfo());
+                    spInfo.put("usualInfo", usualInfo);
+                }
+            }else {
+                //固定信息
+                Map<String, Object> usualInfo = appUserService.getUsualInfo(anotherUserId);
+                spInfo.put("usualInfo", usualInfo);
+            }
+            //用户认证信息
+            List<UserAuthentication> authentList = userAuthenticationService.getAll(anotherUserId);
+            spInfo.put("phone", UserEntity.NORMAL);
+            spInfo.put("certification", UserEntity.NORMAL);
+            spInfo.put("education", UserEntity.NORMAL);
+            spInfo.put("mail", UserEntity.NORMAL);
+            spInfo.put("profession", UserEntity.NORMAL);
+            spInfo.put("sesame", UserEntity.NORMAL);
+            String[] authentType = new String[] {"phone","certification","education","mail","profession","sesame"};
+            for(UserAuthentication authent : authentList){
+                if(authent.getAuthType().equals(authentType[0])) {
+                    spInfo.put("phone", authent.getAuthState());
+                }
+                if(authent.getAuthType().equals(authentType[1])) {
+                    spInfo.put("certification", authent.getAuthState());
+                }
+                if(authent.getAuthType().equals(authentType[2])) {
+                    spInfo.put("education", authent.getAuthState());
+                }
+                if(authent.getAuthType().equals(authentType[3])) {
+                    spInfo.put("mail", authent.getAuthState());
+                }
+                if(authent.getAuthType().equals(authentType[4])) {
+                    spInfo.put("profession", authent.getAuthState());
+                }
+                if(authent.getAuthType().equals(authentType[5])) {
+                    spInfo.put("sesame", authent.getAuthState());
+                }
+            }
+            //个人兴趣点
+            List<PageData> tagList = new ArrayList<>();
+            Query query = new Query().addCriteria(Criteria.where("userId").is(anotherUserId));
+            List<UserInterestPoint> interestList = userInterestPointService.find(query);
+            if(interestList != null) {
+                for(UserInterestPoint point : interestList) {
+                    PageData tagPd = new PageData<>();
+                    XTagLibrary tag = xTagLibraryService.findOneById(point.getPointId());
+                    tagPd.put("tagId", tag.getId());
+                    tagPd.put("tagName", tag.getTagName());
+                    tagList.add(tagPd);
+                }
+            }
+            spInfo.put("interestList", tagList) ;
+            //板块列表
+            List<QASection> qASectionList = qASectionService.find(new Query().with(new Sort(new Order(Direction.ASC, "sectionType"))));
+            
+            
+            //被查看者话题分布情况
+            for(QASection section : qASectionList) {
+                Query seQuery = new Query()
+                        .addCriteria(Criteria.where("answerID").is(anotherUserId));
+                seQuery.addCriteria(Criteria.where("type").is(section.getSectionType()));
+                List<ArecordVO> arecordList = arecordService.find(seQuery);
+                if(arecordList.size() != 0) {
+                    map.put(section.getSectionType(),arecordList.size());
+                }
+            }
+            if(map.size() < 10) {
+                Integer[] a = new Integer[map.size()];
+                Integer[] array = map.values().toArray(a);
+                Set<Integer> set = new HashSet<>();  
+                for(int i=0;i<array.length;i++){  
+                    set.add(array[i]);  
+                }  
+                Integer[] arrayResult = (Integer[]) set.toArray(new Integer[set.size()]);  
+                Integer[] bubble_sort = SortAlgorithmUtils.bubble_sort((Integer[])arrayResult);
+                for(int key : bubble_sort) {
+                    List<Short> typeList = MapRemoveNullUtil.getKeyList(map,key);
+                    if(typeList.size() > 1) {
+                        for(Short type : typeList) {
+                            PageData tyPd = new PageData<>();
+                            QASection qASection = qASectionService.findOneByQuery(new Query().addCriteria(Criteria.where("sectionType").is(type)));
+                            tyPd.put("sectionName", qASection.getSectionName());
+                            // 创建一个数值格式化对象     
+                            NumberFormat numberFormat = NumberFormat.getInstance();     
+                            // 设置精确到小数点后2位     
+                            numberFormat.setMaximumFractionDigits(0);     
+                            String prent = numberFormat.format((float)key/(float)arecordCount*100); 
+                            tyPd.put("prent", prent);
+                            resultList.add(tyPd);
+                        }
+                    }else {
+                        PageData resultPd = new PageData<>();
+                        Short type = MapRemoveNullUtil.getKey(map,key);
+                        QASection qASection = qASectionService.findOneByQuery(new Query().addCriteria(Criteria.where("sectionType").is(type)));
+                        resultPd.put("sectionName", qASection.getSectionName());
+                        // 创建一个数值格式化对象     
+                        NumberFormat numberFormat = NumberFormat.getInstance();     
+                        // 设置精确到小数点后2位     
+                        numberFormat.setMaximumFractionDigits(0);     
+                        String prent = numberFormat.format((float)key/(float)arecordCount*100); 
+                        resultPd.put("prent", prent);
+                        resultList.add(resultPd);
+                    }
+                }
+            }else {
+                Integer[] a = new Integer[map.size()];
+                Integer[] array = map.values().toArray(a);
+                Integer[] bubble_sort = SortAlgorithmUtils.bubble_sort((Integer[])array);
+                for(int i = 0;i < 10;i++) {
+                    PageData resultPd = new PageData<>();
+                    Short type = MapRemoveNullUtil.getKey(map,bubble_sort[i]);
+                    QASection qASection = qASectionService.findOneByQuery(new Query().addCriteria(Criteria.where("sectionType").is(type)));
+                    resultPd.put("sectionName", qASection.getSectionName());
+                    // 创建一个数值格式化对象     
+                    NumberFormat numberFormat = NumberFormat.getInstance();     
+                    // 设置精确到小数点后2位     
+                    numberFormat.setMaximumFractionDigits(0);     
+                    String prent = numberFormat.format((float)bubble_sort[i]/(float)arecordCount*100); 
+                    resultPd.put("prent", prent);
+                    resultList.add(resultPd);
+                }
+                for(int i = 9;i <= map.size();i++) {
+                    temp += bubble_sort[i];
+                }
+                PageData resultPd = new PageData<>();
+                resultPd.put("sectionName", "其他");
+                // 创建一个数值格式化对象     
+                NumberFormat numberFormat = NumberFormat.getInstance();     
+                // 设置精确到小数点后2位     
+                numberFormat.setMaximumFractionDigits(0);     
+                String prent = numberFormat.format(temp/arecordCount*100); 
+                resultPd.put("prent", prent);
+                resultList.add(resultPd);
+            }
+            spInfo.put("qaList", resultList);
+	        
+            JedisUtil jedisUtil = JedisUtil.getInstance();    
+            JedisUtil.Strings String = jedisUtil.new Strings();  
+            //契合度
+            if(arecordCount <= Integer.parseInt(String.get("arecordCount"))) {
+                Random rad=new Random();
+                int nextInt = rad.nextInt(50) + 1;
+                spInfo.put("result", nextInt);
+            }else {
+                Random rad=new Random();
+                int nextInt = rad.nextInt(50) + 50;
+                spInfo.put("result", nextInt);
+            }
+	        log.info("infoMsg:--- 获取ab自画像匹配结束");
+	        return reponse.success(spInfo);
+	    } catch (Exception e) {
+	        log.error("errorMsg:--- 获取ab自画像匹配失败:" + e.getMessage() + "---}");
+	        return reponse.failure(e.getMessage());
+	    }
+	    
+	}
+	
+	
+	
+	/**
+	 * 获取匹配信息    
+	 * 
+	 * @param userId
+	 * @param anotherUserId
+	 * @return
+	 */
+	@RequestMapping(value=Router.QUERY_MATCH_MESSAGE,method=RequestMethod.POST)
+	@ResponseBody
+	public Response query_match_message(@RequestParam("userId") Integer userId,@RequestParam("anotherUserId") Integer anotherUserId) {
+        log.info("infoMsg:--- 获取匹配信息开始");
+        Response reponse = this.getReponse();
+        try {
+            Map<String,Object> map = appUserService.queryMatchMessage(userId,anotherUserId);
+            log.info("infoMsg:--- 获取匹配信息结束");
+            return reponse.success(map);
+        } catch (Exception e) {
+            log.error("errorMsg:--- 获取匹配信息失败");
+            return reponse.failure();
+        }
+	        
+	}
+	
+	
+	
+}

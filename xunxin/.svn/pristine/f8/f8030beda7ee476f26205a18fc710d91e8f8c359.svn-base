@@ -1,0 +1,345 @@
+package com.xunxin.controller.app.user;
+
+import java.io.BufferedInputStream;
+import java.io.BufferedOutputStream;
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.InputStream;
+import java.util.Arrays;
+import java.util.Date;
+import java.util.Iterator;
+import java.util.List;
+
+import org.apache.commons.lang3.StringUtils;
+import org.apache.log4j.Logger;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.ResponseBody;
+import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.multipart.MultipartHttpServletRequest;
+import org.springframework.web.multipart.commons.CommonsMultipartFile;
+
+import com.xunxin.controller.system.BaseController;
+import com.xunxin.service.app.AppUserService;
+import com.xunxin.service.app.UserInfoDataService;
+import com.xunxin.service.app.UserShieldsService;
+import com.xunxin.service.app.user.UserFeedBackService;
+import com.xunxin.service.app.user.UserOnlineRecordService;
+import com.xunxin.service.app.user.UserSignService;
+import com.xunxin.util.app.OrderGeneratedUtils;
+import com.xunxin.vo.im.UserShields;
+import com.xunxin.vo.sys.PageData;
+import com.xunxin.vo.user.UserEntity;
+import com.xunxin.vo.user.UserFeedBackVO;
+import com.xunxin.vo.user.UserInfoData;
+import com.xunxin.vo.user.UserOnlineRecord;
+import com.xunxin.vo.user.UserWelfare;
+import com.xunxin.web.api.bean.Response;
+import com.xunxin.web.api.bean.Router;
+
+/**
+ * Copyright © 2017 noseparte(Libra) © Like the wind, like rain
+ * @Author Noseparte
+ * @Compile 2017年11月28日 -- 上午10:16:38
+ * @Version 1.0
+ * @Description		用户设置
+ */
+@Controller
+@RequestMapping(value=Router.PATH+Router.Option.PATH)
+public class XOptionController extends BaseController {
+
+	private final static Logger log = Logger.getLogger(XOptionController.class);
+	
+	@Autowired
+	private AppUserService appUserService;
+	@Autowired
+	private UserFeedBackService userFeedBackService;
+	@Autowired
+	private UserShieldsService userShieldsService;
+	@Autowired
+	private UserInfoDataService userInfoDataService;
+	@Autowired
+	private UserOnlineRecordService userOnlineRecordService;
+	@Autowired
+	private UserSignService userSignService;
+	
+	/**
+	 * 用户提交反馈信息
+	 * 
+	 * @param request
+	 * @param userId
+	 * @param feedContent
+	 * @return
+	 */
+	@RequestMapping(value=Router.Option.USER_FEEDBACK,method=RequestMethod.POST)
+	@ResponseBody
+	public Response user_feedback(MultipartHttpServletRequest request,@RequestParam("userId") int userId,
+			@RequestParam("feedContent") String feedContent) {
+		log.info("infoMsg:--- 用户反馈开始");
+		Response reponse = this.getReponse();
+		CommonsMultipartFile multipartFile = null;
+		BufferedInputStream is = null;  
+		BufferedOutputStream out = null;  // 准备好一个输出的对象
+		String urls = "";
+		try {
+			Iterator<String> itr =  request.getFileNames();
+			while(itr.hasNext()){
+		         String str = itr.next();
+		         multipartFile = (CommonsMultipartFile)request.getFile(str);
+		         String[] fileExts = {"jpg", "png"};
+		         String fileName = multipartFile.getOriginalFilename();   //原文件名
+		         String fileExt = fileName.substring(fileName.lastIndexOf(".") + 1, fileName.length());
+		         if (Arrays.binarySearch(fileExts, fileExt) != -1) {
+		        	 MultipartFile mpf = request.getFile(str);
+		        	 InputStream inputStream = mpf.getInputStream();
+		        	 is = new BufferedInputStream(inputStream);
+		        	 String url = "D:\\programmeTools\\nginx-1.12.1\\photo\\feedback" + "/" + str + OrderGeneratedUtils.getOrderNo()  + "." + fileExt;
+		        	 File newFile = new File(url);
+		        	 if(is != null) {
+		        		 out = new BufferedOutputStream(new FileOutputStream(newFile));  
+		        		 byte[] buffer = new byte[1024];  
+		        		 int len = -1;  
+		        		 while ((len = is.read(buffer)) != -1) {  
+		        			 out.write(buffer, 0, len);  
+		        		 }
+		        		 String name = str + OrderGeneratedUtils.getOrderNo() + "." + fileExt;
+		        		 urls += name + "|";
+		        	 }
+		         }else {
+					return reponse.failure("该文件类型不能够上传");
+		         }
+		    }
+			String feedRemark = "";
+			UserFeedBackVO feed = new UserFeedBackVO(feedContent, urls, new Date(), feedRemark, userId);
+			userFeedBackService.save(feed);
+			log.info("infoMsg:--- 用户反馈结束");
+			return reponse.success();
+		} catch (Exception e) {
+			log.error("errorMsg:--- 用户反馈失败" + e.getMessage());
+			return reponse.failure(e.getMessage());
+		}finally {
+			if(is != null) {  
+                try {  
+                    is.close();  
+                }catch (Exception e) {  
+                    e.printStackTrace();  
+                }  
+            }  
+            if(out != null) {  
+                try {  
+                    out.close();  
+                }catch (Exception e) {  
+                    e.printStackTrace();  
+                }  
+            }  
+		}
+	}
+	
+	
+	/**
+	 * 用户账号设置
+	 * 
+	 * @param userId
+	 * @return
+	 */
+	@RequestMapping(value=Router.Option.USER_ACCOUNT_SETUP,method=RequestMethod.POST)
+	@ResponseBody
+	public Response user_account_setup(@RequestParam("userId") int userId) {
+		log.info("infoMsg:--- 获取用户账号设置信息开始");
+		Response reponse = this.getReponse();
+		PageData pd = new PageData<>();
+		try {
+			UserEntity user = appUserService.findById(userId);
+			pd.put("phone", user.getPhone());
+			if(StringUtils.isBlank(user.getPassword()) && StringUtils.trim(user.getPassword()).equals("")){
+				pd.put("state", UserEntity.UNUSUAL);
+				pd.put("havePwd", "未设置密码");
+			}else {
+				pd.put("state", UserEntity.NORMAL);
+				pd.put("havePwd", "已有密码");
+			}
+			List<UserInfoData> infoList = userInfoDataService.findByUserId(userId);
+			String[] openType = new String[] {"MicroBlog","Tencent","WeChat"};
+			pd.put("MicroBlogState", UserEntity.NORMAL);
+			pd.put("TencentState", UserEntity.NORMAL);
+			pd.put("WeChatState", UserEntity.NORMAL);
+			for(UserInfoData data : infoList) {
+				if(data.getOpenType().equals(openType[0])) {
+					pd.put("MicroBlogState", data.getOpenState());
+				}
+				if(data.getOpenType().equals(openType[1])) {
+					pd.put("TencentState", data.getOpenState());
+				}
+				if(data.getOpenType().equals(openType[2])) {
+					pd.put("WeChatState", data.getOpenState());
+				}
+			}
+			log.info("infoMsg:--- 获取用户账号设置信息开始");
+			return reponse.success(pd);
+		} catch (Exception e) {
+			log.info("errorMsg:{--- 获取用户账号设置信息失败：" + e.getMessage() + "---}");
+			return reponse.failure(e.getMessage());
+		}
+	}
+	
+	
+	
+	
+	/**
+	 * 设置密码
+	 * 
+	 * @param userId
+	 * @param password
+	 * @return
+	 */
+	@RequestMapping(value=Router.Option.SETUP_PASSWORD,method=RequestMethod.POST)
+	@ResponseBody
+	public Response setup_password(@RequestParam("usreId") int userId) {
+		log.info("infoMsg:--- 设置密码开始");
+		Response reponse = this.getReponse();
+		PageData pd = new PageData<>();
+		try {
+			UserEntity user = appUserService.findById(userId);
+			if(!StringUtils.trim(user.getPassword()).equals("") && !StringUtils.isBlank(user.getPassword())) {
+			    pd.put("hasPwd", UserEntity.NORMAL);
+			}else {
+			    pd.put("hasPwd", UserEntity.UNUSUAL);
+			}
+			log.info("infoMsg:--- 设置密码结束");
+			return reponse.success(pd);
+		} catch (Exception e) {
+			log.error("errorMsg:--- 设置密码失败" + e.getMessage());
+			return reponse.failure(e.getMessage());
+		}
+	}
+	
+	/**
+	 * 重置密码
+	 * 
+	 * @param userId
+	 * @param password
+	 * @return
+	 */
+	@RequestMapping(value=Router.Option.RESET_PASSWORD,method=RequestMethod.POST)
+	@ResponseBody
+	public Response reset_password(@RequestParam("usreId") int userId,@RequestParam("newWord") String newWord) {
+	    log.info("infoMsg:--- 设置密码开始");
+	    Response reponse = this.getReponse();
+	    PageData pd = new PageData<>();
+	    try {
+	        appUserService.setup_password(userId, newWord);
+	        log.info("infoMsg:--- 设置密码结束");
+	        return reponse.success(pd);
+	    } catch (Exception e) {
+	        log.error("errorMsg:--- 设置密码失败" + e.getMessage());
+	        return reponse.failure(e.getMessage());
+	    }
+	}
+	
+	
+	/**
+	 * 获取用户的屏蔽人列表
+	 * 
+	 * @param userId
+	 * @return
+	 */
+	@RequestMapping(value=Router.Option.GET_BLOCK_LIST,method=RequestMethod.POST)
+	@ResponseBody
+	public Response get_block_list (@RequestParam("userId") int userId) {
+		log.info("infoMsg:--- 获取屏蔽人列表开始");
+		Response reponse = this.getReponse();
+		try {
+			List<UserShields> findShields = userShieldsService.findShields(userId);
+			
+			log.info("infoMsg:--- 获取屏蔽人列表结束");
+			return reponse.success(findShields);
+		} catch (Exception e) {
+			log.error("errorMsg:--- 获取屏蔽人列表失败");
+			return reponse.failure();
+		}
+		
+	}
+	
+	
+	/**
+	 * 统计用户在线时长
+	 * 
+	 * @param userId
+	 * @return
+	 */
+	@RequestMapping(value=Router.Option.ONLINE_COUNT_TIMES,method=RequestMethod.POST)
+	@ResponseBody
+	public Response online_count_times(@RequestParam("userId") int userId,@RequestParam("minutes") int minutes) {
+	    log.info("infoMsg:--- 获取用户在线时长开始");
+	    Response reponse = this.getReponse();
+	    try {
+	        UserOnlineRecord record = new UserOnlineRecord();
+	        record.setOnlineTime(minutes);
+	        record.setUserId(userId);
+	        userOnlineRecordService.save(record);
+	        appUserService.updateIsLogin(userId,1);
+	        log.info("infoMsg:--- 获取用户在线时长结束");
+	        return reponse.success();
+	    } catch (Exception e) {
+	        log.error("errorMsg:{--- 获取用户在线时长失败:" + e.getMessage() + "---}");
+	        return reponse.failure(e.getMessage());
+	    }
+	    
+	}
+	
+	/**
+	 * 用户签到
+	 * 
+	 * @param userId
+	 * @return
+	 */
+	@RequestMapping(value=Router.Option.USER_SIGN,method=RequestMethod.POST)
+	@ResponseBody
+	public Response user_sign(@RequestParam("userId") Integer userId) {
+	    log.info("infoMsg:---  用户签到开始");
+	    Response reponse = this.getReponse();
+	    try {
+	    	boolean flag = userSignService.saveSgn(userId);
+	        log.info("infoMsg:---  用户签到结束");
+	        if(flag){
+	        	  return reponse.success();
+	        }else{
+	        	return reponse.failure("今天已签到");
+	        }
+	    } catch (Exception e) {
+	        log.error("errorMsg:{---  用户签到失败:" + e.getMessage() + "---}");
+	        return reponse.failure(e.getMessage());
+	    }
+	    
+	}
+	/**
+	 * 我的福利
+	 * 
+	 * @param userId
+	 * @return
+	 */
+	@RequestMapping(value=Router.Option.USER_WELFARE,method=RequestMethod.POST)
+	@ResponseBody
+	public Response user_Welfare(@RequestParam("userId") Integer userId) {
+	    log.info("infoMsg:---  我的福利开始");
+	    Response reponse = this.getReponse();
+	    try {
+	    	userOnlineRecordService.queryAverageOnlineLength();
+	    	UserWelfare welfare = userSignService.queryMyWelfare(userId);
+	        log.info("infoMsg:---  我的福利结束");
+	        return reponse.success(welfare);
+	    } catch (Exception e) {
+	        log.error("errorMsg:{---  我的福利失败:" + e.getMessage() + "---}");
+	        return reponse.failure(e.getMessage());
+	    }
+	    
+	}
+	
+	
+	
+	
+	
+}

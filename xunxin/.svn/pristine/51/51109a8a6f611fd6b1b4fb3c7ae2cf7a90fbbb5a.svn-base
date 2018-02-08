@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"   
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.xunxin.dao.admin.AdminDao">
+	
+	<select id="findUserById" parameterType="java.lang.Integer" resultType="com.xunxin.vo.admin.Admin">
+		SELECT * from xunxin_admin a 
+		where a.id = #{id}
+	</select>
+	
+	<select id="findAdminByAdminName" parameterType="java.lang.String" resultType="com.xunxin.vo.admin.Admin">
+		SELECT * from xunxin_admin a 
+		where a.ishiden = 0 and 
+			<if test=" username != null and username != '' ">
+				a.adminName = #{username}
+			</if>
+	</select>
+	
+	<select id="findAll" resultType="com.xunxin.vo.admin.Admin">
+		SELECT id,adminName,password,gender,roleId,nickName,createTime,lastLoginTime,ishiden,lastLoginIp,photograph
+		from xunxin_admin 
+	</select>
+	
+    <insert id="insert" parameterType="com.xunxin.vo.sys.PageData">
+        INSERT INTO xunxin_admin (
+		    adminName,
+		    password,
+		    gender,
+		    roleId,
+		    nickName,
+		    createTime,
+		    lastLoginTime,
+		    ishiden,
+		    lastLoginIp
+		)
+		VALUES
+		    (
+		        #{adminName},
+		        #{password},
+		        #{gender},
+		        #{roleId},
+		        #{nickName},
+		        NOW(),
+		        NOW(),
+		        #{ishiden},
+		        #{lastLoginIp}
+		    );
+    </insert>
+
+    <delete id="delete" parameterType="com.xunxin.vo.sys.PageData">
+        delete from t_user where id in (
+        <foreach collection="IDS" item="id" separator=",">
+            #{id}
+        </foreach>
+        )  
+    </delete>
+
+</mapper>

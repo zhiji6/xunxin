@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"   
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.xunxin.dao.admin.ResourceDao">
+
+	<select id="findAll" resultType="com.xunxin.vo.admin.Resource">
+		select m.id,m.name,m.resKey,m.resUrl,m.parentId,m.description
+		from xunxin_admin_resource m
+	</select>
+
+</mapper>

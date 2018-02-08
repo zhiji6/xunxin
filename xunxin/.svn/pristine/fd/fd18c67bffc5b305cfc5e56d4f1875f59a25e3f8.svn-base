@@ -1,0 +1,26 @@
+package com.xunxin.constants;
+
+/**
+ * 
+ * Copyright © 2017 Xunxin Network Technology Co. Ltd.
+ *
+ * @Author Noseparte
+ * @Compile 2018年1月18日 -- 上午10:27:27
+ * @Version 1.0
+ * @Description     交易明细类型
+ */
+public interface AmountConstants {
+
+    //收入|支出
+    public static final String INCOME = "income";
+    public static final String EXPEND = "expend";
+    
+    /** #######################          收入项                         ######################## */
+    public static final String RECHARGE = "充值";
+
+/** #######################          支出项                         ######################## */
+    public static final String ARECORD_QUESTION = "答题";
+    public static final String AUTHENTICATION = "认证";      //50/项
+    
+    
+}

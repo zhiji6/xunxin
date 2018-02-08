@@ -1,0 +1,39 @@
+package com.xunxin.service.app.qa;
+
+import java.util.ArrayList;
+import java.util.List;
+
+import org.springframework.data.mongodb.core.query.Criteria;
+import org.springframework.data.mongodb.core.query.Query;
+import org.springframework.stereotype.Repository;
+
+import com.xunxin.dao.impl.app.AnswerDaoImpl;
+import com.xunxin.vo.qa.AnswerVO;
+import com.xunxin.vo.qa.QuestionVO;
+
+@Repository
+public class AnswerService extends AnswerDaoImpl{
+
+	public  List<AnswerVO> findAnswerVOS(QuestionVO question) throws Exception {
+		List<AnswerVO> list = new ArrayList<AnswerVO>();
+		if(question != null&& question.getAnswers() != null && !"".equals(question.getAnswers())){
+			String ans = question.getAnswers();
+			String substring = ans.substring(1);
+			String subs = substring.substring(0,substring.length()-1);
+			String[] ids = subs.split(",");
+			for (String string : ids) {
+				Query query = new Query();
+				query.addCriteria(Criteria.where("id").is(string));
+				List<AnswerVO> find = find(query);
+				if(find != null && find.size()>0){
+					list.add(find.get(0));
+				}
+			}
+			return list;
+		}else{
+			return list;
+		}
+	}
+
+
+}

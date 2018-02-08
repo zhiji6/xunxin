@@ -1,0 +1,17 @@
+package com.xunxin.dao.sys;
+
+import java.util.List;
+
+import org.apache.ibatis.annotations.Param;
+
+import com.xunxin.vo.sys.SystemArea;
+
+public interface SystemAreaDao {
+
+	void save(SystemArea province);
+
+	List<SystemArea> getAllArea();
+
+	void update(@Param("preId") Integer preId,@Param("newId") Integer newId);
+
+}

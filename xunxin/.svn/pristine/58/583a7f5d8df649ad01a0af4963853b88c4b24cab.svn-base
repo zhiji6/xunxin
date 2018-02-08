@@ -1,0 +1,354 @@
+package com.xunxin.controller.app.square;
+
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.List;
+import java.util.Random;
+
+import org.apache.log4j.Logger;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.mongodb.core.query.Criteria;
+import org.springframework.data.mongodb.core.query.Query;
+import org.springframework.data.mongodb.core.query.Update;
+import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.ResponseBody;
+
+import com.xunxin.constants.DynamicConstants;
+import com.xunxin.controller.system.BaseController;
+import com.xunxin.service.ArecordService;
+import com.xunxin.service.app.AppUserService;
+import com.xunxin.service.app.UserFriendsService;
+import com.xunxin.service.app.qa.QACollectionRecordService;
+import com.xunxin.service.app.qa.QuestionService;
+import com.xunxin.service.app.square.ThrowHydrangeaRecordService;
+import com.xunxin.service.app.user.UserDynamicRecordService;
+import com.xunxin.util.app.CollectionRandomUtil;
+import com.xunxin.vo.qa.ArecordVO;
+import com.xunxin.vo.qa.QACollectionRecord;
+import com.xunxin.vo.qa.QuestionVO;
+import com.xunxin.vo.square.ThrowHydrangeaRecord;
+import com.xunxin.vo.sys.PageData;
+import com.xunxin.vo.user.UserDynamicRecordVO;
+import com.xunxin.vo.user.UserEntity;
+import com.xunxin.web.api.bean.Response;
+import com.xunxin.web.api.bean.Router;
+
+/**
+ * Copyright © 2017 noseparte(Libra) © Like the wind, like rain
+ * @Author Noseparte
+ * @Compile 2017年11月28日 -- 下午2:42:01
+ * @Version 1.0
+ * @Description		姻缘树
+ */
+@Controller
+@RequestMapping(value=Router.PATH+Router.Hydrangea.PATH)
+public class ThrowHydrangeaController extends BaseController {
+
+	private final static Logger log = Logger.getLogger(ThrowHydrangeaController.class);
+	
+	@Autowired
+	private AppUserService appUserService;
+	@Autowired
+	private ThrowHydrangeaRecordService throwHydrangeaRecordService;
+	@Autowired
+	private ArecordService arecordService;
+	@Autowired
+	private QuestionService questionService;
+	@Autowired
+	private UserFriendsService userFriendsService;
+	@Autowired
+	private QACollectionRecordService qACollectionRecordService;
+	@Autowired
+    private UserDynamicRecordService userDynamicRecordService;	
+	
+	/**
+	 * 采笺
+	 * 
+	 * @param userId
+	 * @param HydrangeaId  信笺id
+	 * @return
+	 */
+	@RequestMapping(value=Router.Hydrangea.PICK_HYDRANGEA,method=RequestMethod.POST)
+	@ResponseBody
+	public Response pick_hydrangea(@RequestParam("userId") int userId) {
+		log.info("infoMsg:--- 采笺开始");
+		Response reponse = this.getReponse();
+		PageData pd = new PageData<>();
+		String sex = "";
+		try {
+//		    UserEntity user = appUserService.findById(userId);
+//		    if(user.getGender().equals("男")) {sex = "女"; }
+//		    else { sex = "男";  }
+		    Query throwQuery = new Query()
+                    .addCriteria(Criteria.where("userId").is(userId))
+                    .addCriteria(Criteria.where("dynamicSource").is(DynamicConstants.THROW_HYDRANGEA));
+            UserDynamicRecordVO dynamiRecord = userDynamicRecordService.findOneByQuery(throwQuery);
+            if(dynamiRecord == null) {
+                UserDynamicRecordVO userDynamicRecord = new UserDynamicRecordVO();
+                userDynamicRecord.setContent("我在广场上玩姻缘树，相知从此刻开始。");
+                userDynamicRecord.setThumbCount(0);
+                userDynamicRecord.setDynamicExtend("");
+                userDynamicRecord.setDynamicSource(DynamicConstants.THROW_HYDRANGEA);
+                userDynamicRecord.setUserId(userId);
+                userDynamicRecord.setIshiden(0);
+                userDynamicRecordService.save(userDynamicRecord);
+            }else {
+                Update update = new Update();
+                update.set("createTime", new Date());
+                userDynamicRecordService.updateFirst(throwQuery, update);
+            }
+		    Query query = new Query()
+		            .addCriteria(Criteria.where("hydrangeaState").is(1));
+//		            .addCriteria(Criteria.where("gender").is(sex));
+		    List<ThrowHydrangeaRecord> HydrangeaList = throwHydrangeaRecordService.find(query);
+		    if(HydrangeaList.isEmpty()) {
+		        return reponse.success("结缘笺已采空，投笺试试谁懂你？");
+		    }
+		    ThrowHydrangeaRecord record = HydrangeaList.get(new Random().nextInt(HydrangeaList.size()));
+		    if(record.getUserId() != userId) {
+		        Update update = new Update().set("hydrangeaState", 0).set("throwId", userId);
+		        throwHydrangeaRecordService.updateFirst(new Query().addCriteria(Criteria.where("id").is(record.getId())), update);
+		        pd.put("hydrangeaId", record.getId());
+		    }
+		    log.info("infoMsg:--- 采笺结束");
+			return reponse.success(pd);
+		} catch (Exception e) {
+			log.info("errorMsg:{--- 采笺失败:" + e.getMessage() + "---}");
+			return reponse.failure(e.getMessage());
+		}
+	}
+	
+	
+	/**
+	 * 回笺
+	 * 
+	 * @param userId
+	 * @param HydrangeaId  信笺id
+	 * @return
+	 */
+	@RequestMapping(value=Router.Hydrangea.REPLY_HYDRANGEA,method=RequestMethod.POST)
+	@ResponseBody
+	public Response reply_hydrangea(@RequestParam("userId") int userId,@RequestParam("HydrangeaId") String HydrangeaId) {
+	    log.info("infoMsg:--- 回笺开始");
+	    Response reponse = this.getReponse();
+	    List<PageData> pdList = new ArrayList<>();
+	    try {
+	        ThrowHydrangeaRecord Hydrangea = throwHydrangeaRecordService.findOneById(HydrangeaId);
+	        UserEntity user = appUserService.findById(Hydrangea.getUserId());
+	        if(Hydrangea.getQaList() != null) {
+	            String[] qaList = Hydrangea.getQaList().split(",");
+	            for(String id : qaList) {
+	                String questionId = id.trim();
+	                QuestionVO vo = questionService.findOneById(questionId);
+	                if(vo != null) {
+	                    PageData pd = new PageData<>();
+	                    pd.put("id", questionId);
+	                    pd.put("name", vo.getName());
+	                    pd.put("userId", user.getUid());
+	                    pd.put("ID", user.getID());
+	                    pd.put("gender", user.getGender());
+	                    pd.put("nickName", user.getNickName());
+	                    //是否关注
+	                    boolean flag = userFriendsService.isAttention(userId,user.getUid());
+	                    if(flag) {
+	                        pd.put("attentionState", 0);
+	                    }else {
+	                        pd.put("attentionState", 1);
+	                    }
+	                    pdList.add(pd);
+	                }
+	            }
+	            Query throwQuery = new Query()
+	                    .addCriteria(Criteria.where("userId").is(userId))
+	                    .addCriteria(Criteria.where("dynamicSource").is(DynamicConstants.THROW_HYDRANGEA));
+	            UserDynamicRecordVO dynamiRecord = userDynamicRecordService.findOneByQuery(throwQuery);
+	            if(dynamiRecord == null) {
+	                UserDynamicRecordVO userDynamicRecord = new UserDynamicRecordVO();
+	                userDynamicRecord.setContent("我在广场上玩姻缘树，相知从此刻开始。");
+	                userDynamicRecord.setThumbCount(0);
+	                userDynamicRecord.setDynamicExtend("");
+	                userDynamicRecord.setDynamicSource(DynamicConstants.THROW_HYDRANGEA);
+	                userDynamicRecord.setUserId(userId);
+	                userDynamicRecord.setIshiden(0);
+	                userDynamicRecordService.save(userDynamicRecord);
+	            }else {
+	                Update update = new Update();
+	                update.set("createTime", new Date());
+	                userDynamicRecordService.updateFirst(throwQuery, update);
+	            }
+	        }
+	        log.info("infoMsg:--- 回笺结束");
+	        return reponse.success(pdList);
+	    } catch (Exception e) {
+	        log.info("errorMsg:{--- 回笺失败:" + e.getMessage() + "---}");
+	        return reponse.failure(e.getMessage());
+	    }
+	}
+	
+	
+	/**
+	 * 投笺(自选的Q&A列表)
+	 * 
+	 * @param userId
+	 * @param qaList
+	 * @param isSendCircle        收藏的Q&A 自选15
+	 * @return
+	 */
+	@RequestMapping(value=Router.Hydrangea.THROW_HYDRANGEA_CUSTOM_QALIST,method=RequestMethod.POST)
+	@ResponseBody
+	public Response throw_hydrangea_custom_qalist(@RequestParam("userId") int userId) {
+	    log.info("infoMsg:--- 投笺(自选的Q&A列表)开始");
+	    Response reponse = this.getReponse();
+	    List<PageData> pdList = new ArrayList<>();
+	    try {
+	        Query collectQuery = new Query()
+	                .addCriteria(Criteria.where("userId").is(userId));
+	        List<QACollectionRecord> collectList = qACollectionRecordService.find(collectQuery);
+	        for(QACollectionRecord QACollectionRecord : collectList) {
+	            PageData pd = new PageData<>();
+	            Query areQuery = new Query()
+	                    .addCriteria(Criteria.where("questionID").is(QACollectionRecord.getQuestionId()))
+	                    .addCriteria(Criteria.where("answerID").is(userId));
+	            ArecordVO ArecordVO = arecordService.findOneByQuery(areQuery);
+	            if(ArecordVO != null) {
+	                QuestionVO questionVO = questionService.findOneById(QACollectionRecord.getQuestionId());
+	                pd.put("id", questionVO.getId());
+	                pd.put("name", questionVO.getName());
+	                pdList.add(pd);
+	            }
+	        }
+	        log.info("infoMsg:--- 投笺(自选的Q&A列表)结束");
+	        return reponse.success(pdList);
+	    } catch (Exception e) {
+	        log.info("errorMsg:{--- 投笺(自选的Q&A列表)失败:" + e.getMessage() + "---}");
+	        return reponse.failure(e.getMessage());
+	    }
+	}
+	
+	
+	
+	/**
+	 * 投笺(自选)
+	 * 
+	 * @param userId
+	 * @param qaList
+	 * @param isSendCircle        收藏的Q&A 自选15
+	 * @return
+	 */
+	@RequestMapping(value=Router.Hydrangea.THROW_HYDRANGEA_CUSTOM,method=RequestMethod.POST)
+	@ResponseBody
+	public Response throw_hydrangea_custom(@RequestParam("userId") int userId,@RequestParam("qaList") String qaList) {
+	    log.info("infoMsg:--- 投笺(自选)开始");
+	    Response reponse = this.getReponse();
+	    try {
+	        String[] qArray = qaList.replace("[", "").replace("]", "").trim().split(",");
+	        if(qArray.length < 15) {
+	            return reponse.failure("话题收藏量不足15,请补充后再试");
+	        }
+	        Query throwQuery = new Query()
+                    .addCriteria(Criteria.where("userId").is(userId))
+                    .addCriteria(Criteria.where("dynamicSource").is(DynamicConstants.THROW_HYDRANGEA));
+            UserDynamicRecordVO dynamiRecord = userDynamicRecordService.findOneByQuery(throwQuery);
+            if(dynamiRecord == null) {
+                UserDynamicRecordVO userDynamicRecord = new UserDynamicRecordVO();
+                userDynamicRecord.setContent("我在广场上玩姻缘树，相知从此刻开始。");
+                userDynamicRecord.setThumbCount(0);
+                userDynamicRecord.setDynamicExtend("");
+                userDynamicRecord.setDynamicSource(DynamicConstants.THROW_HYDRANGEA);
+                userDynamicRecord.setUserId(userId);
+                userDynamicRecord.setIshiden(0);
+                userDynamicRecordService.save(userDynamicRecord);
+            }else {
+                Update update = new Update();
+                update.set("createTime", new Date());
+                userDynamicRecordService.updateFirst(throwQuery, update);
+            }
+	        ThrowHydrangeaRecord record = new ThrowHydrangeaRecord();
+	        record.setQaList(qaList);
+	        record.setUserId(userId);
+	        record.setHydrangeaState(1);
+	        UserEntity user = appUserService.findById(userId);
+	        record.setGender(user.getGender());
+	        throwHydrangeaRecordService.save(record);
+	        log.info("infoMsg:--- 投笺(自选)结束");
+	        return reponse.success();
+	    } catch (Exception e) {
+	        log.info("errorMsg:{--- 投笺(自选)失败:" + e.getMessage() + "---}");
+	        return reponse.failure(e.getMessage());
+	    }
+	}
+	
+	/**
+	 * 投笺(随机)
+	 * 
+	 * @param userId
+	 * @param qaList
+	 * @param isSendCircle   所答的Q&A 随机20
+	 * @return
+	 */
+	@RequestMapping(value=Router.Hydrangea.THROW_HYDRANGEA_RANDOM,method=RequestMethod.POST)
+	@ResponseBody
+	public Response throw_hydrangea_random(@RequestParam("userId") int userId) {
+	    log.info("infoMsg:--- 采笺(随机)开始");
+	    Response reponse = this.getReponse();
+	    PageData pd = new PageData<>();
+	    String qaList = "";
+	    try {
+	        Query arecordQuery = new Query()
+                    .addCriteria(Criteria.where("answerID").is(userId));
+            List<ArecordVO> arecordList = arecordService.find(arecordQuery);
+	        if(arecordList.size() < 20) {
+	            return reponse.failure("答题数少于20,请补充后再来");
+	        }
+	        Query throwQuery = new Query()
+                    .addCriteria(Criteria.where("userId").is(userId))
+                    .addCriteria(Criteria.where("dynamicSource").is(DynamicConstants.THROW_HYDRANGEA));
+            UserDynamicRecordVO dynamiRecord = userDynamicRecordService.findOneByQuery(throwQuery);
+            if(dynamiRecord == null) {
+                UserDynamicRecordVO userDynamicRecord = new UserDynamicRecordVO();
+                userDynamicRecord.setContent("我在广场上玩姻缘树，相知从此刻开始。");
+                userDynamicRecord.setThumbCount(0);
+                userDynamicRecord.setDynamicExtend("");
+                userDynamicRecord.setDynamicSource(DynamicConstants.THROW_HYDRANGEA);
+                userDynamicRecord.setUserId(userId);
+                userDynamicRecord.setIshiden(0);
+                userDynamicRecordService.save(userDynamicRecord);
+            }else {
+                Update update = new Update();
+                update.set("createTime", new Date());
+                userDynamicRecordService.updateFirst(throwQuery, update);
+            }
+	        List<String> list = new ArrayList<>();
+	        List<ArecordVO> hydrangeaList = CollectionRandomUtil.createRandomList(arecordList, 20);
+	        for(ArecordVO vo : hydrangeaList) {
+	            list.add(vo.getQuestionID());
+	        }
+	        qaList = list.toString().replace("[", "").replace("]", "").trim();
+	        ThrowHydrangeaRecord record = new ThrowHydrangeaRecord();
+	        record.setQaList(qaList);
+            record.setUserId(userId);
+            record.setHydrangeaState(1);
+            UserEntity user = appUserService.findById(userId);
+            record.setGender(user.getGender());
+	        throwHydrangeaRecordService.save(record);
+	        pd.put("HydrangeaId", record.getId());
+	        log.info("infoMsg:--- 采笺(随机)结束");
+	        return reponse.success(pd);
+	    } catch (Exception e) {
+	        log.info("errorMsg:{--- 采笺(随机)失败:" + e.getMessage() + "---}");
+	        return reponse.failure(e.getMessage());
+	    }
+	}
+	
+	public static void main(String[] args) {
+        String qaList = "5a4f2a4724b82232902a417e, 5a585fb320f33b2e589f339d, 5a5724d624b82252745440f9, 5a5724eb24b8225274544108, 5a585fae20f33b2e589f339a, 5a5331326f4d1b2a1c5024da, 5a5331276f4d1b2a1c5024d1, 5a549b4b24b822441c008950, 5a5724e124b82252745440ff, 5a57262624b822527454410d, 5a5331336f4d1b2a1c5024dd, 5a549b5324b822441c00895c, 5a5724e824b8225274544105, 5a5331346f4d1b2a1c5024e0, 5a586a3724b822596ce7f465, 5a549b5724b822441c008962, 5a549b5524b822441c00895f, 5a5331306f4d1b2a1c5024d7, 5a585fb820f33b2e589f33a3, 5a4f2ae624b82232902a417f";
+        String[] split = qaList.trim().split(",");
+        for(String id : split){
+            System.out.println(id.trim());
+        }
+	}
+	
+}

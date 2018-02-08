@@ -1,0 +1,52 @@
+package com.xunxin.vo.square;
+
+import java.util.Date;
+
+import org.mongodb.framework.pojo.GeneralBean;
+
+/**
+ * 
+ * Copyright © 2017 Xunxin Network Technology Co. Ltd.
+ *
+ * @Author Noseparte
+ * @Compile 2018年1月23日 -- 上午11:25:10
+ * @Version 1.0
+ * @Description     用户擦肩而过记录
+ */
+public class UserBrushAgainstRecord extends GeneralBean{
+
+
+    /**
+     * 
+     */
+    private static final long serialVersionUID = 1L;
+    
+    
+    private Coordinate                          coordinate;         //坐标
+    private int                                 isOpen;             //是否开启
+    private int                                 userId;             //用户id
+    
+    public Coordinate getCoordinate() {
+        return coordinate;
+    }
+    public void setCoordinate(Coordinate coordinate) {
+        this.coordinate = coordinate;
+    }
+    public int getIsOpen() {
+        return isOpen;
+    }
+    public void setIsOpen(int isOpen) {
+        this.isOpen = isOpen;
+    }
+    public int getUserId() {
+        return userId;
+    }
+    public void setUserId(int userId) {
+        this.userId = userId;
+    }
+    
+    
+    
+    
+    
+}

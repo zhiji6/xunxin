@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"   
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.xunxin.dao.app.user.UserSelfPortraitDao">
+	
+	<select id="findById" parameterType="java.lang.Integer" resultType="com.xunxin.vo.user.UserSelfPortraitVO">
+		SELECT id,usualInfo,extraInfo,updateTime,userId from xunxin_user_self_portrait 
+		where userId = #{userId}
+	</select>
+
+    <insert id="save" parameterType="com.xunxin.vo.user.UserSelfPortraitVO">
+        INSERT INTO xunxin_user_self_portrait (
+		    usualInfo,
+		    extraInfo,
+		    updateTime,
+		    userId
+		)
+		VALUES
+		    (
+		    #{usualInfo},
+		    #{extraInfo},
+		    NOW(),
+		    #{userId}
+		    )
+    </insert>
+
+    <update id="updatePortrait">
+	    UPDATE xunxin_user_self_portrait u
+		SET u.extraInfo = #{extraInfo},
+	        u.updateTime = NOW()
+		WHERE
+            u.userId = #{userId}
+    </update>
+    
+    <delete id="removeAll" parameterType="java.lang.Integer">
+        DELETE FROM xunxin_user_self_portrait WHERE userId = #{userId}
+    </delete>
+    
+</mapper>

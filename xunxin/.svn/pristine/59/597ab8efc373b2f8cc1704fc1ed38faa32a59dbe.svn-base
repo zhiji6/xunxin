@@ -1,0 +1,77 @@
+package com.xunxin.service.app;
+
+import java.util.Date;
+import java.util.List;
+
+import org.apache.log4j.Logger;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+import com.xunxin.dao.im.UserReportsMapper;
+import com.xunxin.vo.im.UserReports;
+import com.xunxin.vo.im.UserReportsExample;
+import com.xunxin.vo.im.UserShields;
+import com.xunxin.vo.im.UserShieldsExample;
+import com.xunxin.vo.im.UserReportsExample.Criteria;
+import com.xunxin.vo.qa.XunxinUserDeviceToken;
+
+
+
+@Service("userReportsService")
+public class UserReportsService {
+
+	@Autowired
+	private UserReportsMapper userReportsMapper;
+	@Autowired 
+	private UserShieldsService userShieldsService;
+	private static final Logger logger = Logger.getLogger(UserReportsService.class);
+
+	public List<UserReports> findShields(Integer userId) {
+		List<UserReports> list = userReportsMapper.findReport(userId);
+		return list;
+	}
+
+	public Integer save(Integer userId, Integer anotherId, Integer isdelete, String reportObjectId, String content, String reportType, Integer value) {
+		int insert = 0;
+//		if(anotherId != null && anotherId > 0){
+//			Integer save = userShieldsService.save(userId, anotherId, isdelete);
+//		}
+			UserReports userReports = new UserReports();
+			userReports.setUserId(userId);
+			userReports.setReportId(anotherId);
+			userReports.setIsDelete(isdelete);
+			userReports.setContent(content);
+			userReports.setReportObjectId(reportObjectId);
+			userReports.setReportType(reportType);
+			userReports.setValue(value);
+			userReports.setCreatedate(new Date());
+			userReports.setUpdatedate(new Date());
+			userReports.setType("report");
+			insert = userReportsMapper.insert(userReports);
+		
+		return insert;
+	}
+
+	public void deleteReport(Integer userId, Integer id) {
+		userReportsMapper.deleteReport(userId, id);
+		
+	}
+
+	public  void saveNoInterest(Integer userId, Integer anotherId, Integer isdelete) {
+		UserReports report= userReportsMapper.queryNoInterest(userId,anotherId);
+		if(report != null){
+			userReportsMapper.updateNoInterest(userId,anotherId,isdelete);
+		}else{
+			UserReports userReports = new UserReports();
+			userReports.setUserId(userId);
+			userReports.setReportId(anotherId);
+			userReports.setIsDelete(isdelete);
+			userReports.setType("noInterest");
+			userReports.setCreatedate(new Date());
+			userReports.setUpdatedate(new Date());
+			userReportsMapper.insert(userReports);
+		}
+		
+	}
+
+}

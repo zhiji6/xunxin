@@ -1,0 +1,166 @@
+package com.xunxin.service.app;
+
+import java.util.HashMap;
+
+import java.util.Map;
+
+import org.apache.http.HttpResponse;
+import org.apache.http.util.EntityUtils;
+import org.apache.log4j.Logger;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+import org.springframework.util.Assert;
+
+import com.alibaba.fastjson.JSON;
+import com.alibaba.fastjson.JSONObject;
+import com.xunxin.service.UserService;
+import com.xunxin.util.httpclientutil.HttpUtils;
+import com.xunxin.vo.user.UserEntity;
+
+@Service("personalAuthenticationService")
+public class PersonalAuthenticationService {
+
+	private static Logger log = Logger.getLogger(PersonalAuthenticationService.class);
+	
+	@Autowired
+	private AppUserService appUserService;
+	
+	private static final String host = "http://dm-102.data.aliyun.com";
+	private static final String path = "/rest/161225/zmxy/api/zhima.customer.certification.query.json";
+	private static final String method = "POST";
+//	private static final String AppKey = "24679424";
+//	private static final String AppSecret = "358eb42cb23cd10fa0ab23c23a6253ba";
+	private static final String AppCode = "32e31a04186a45469561afb1feadbd34";
+	
+	/**
+	 * 实名认证
+	 * 
+	 * @param userId
+	 * @param certNo
+	 * @param authType 
+	 * @return
+	 */
+	public String certification_authentication(int userId, String certNo, String authType) {
+		UserEntity entity = appUserService.findById(userId);
+		
+		String host = "http://idcard.market.alicloudapi.com";
+	    String path = "/lianzhuo/idcard";
+	    String method = "GET";
+	    Map<String, String> headers = new HashMap<String, String>();
+	    //最后在header中的格式(中间是英文空格)为Authorization:APPCODE 83359fd73fe94948385f570e3c139105
+	    headers.put("Authorization", "APPCODE " + AppCode);
+	    Map<String, String> querys = new HashMap<String, String>();
+	    querys.put("cardno", certNo);
+	    querys.put("name", entity.getName());
+
+	    try {
+	    	/**
+	    	* 重要提示如下:
+	    	* HttpUtils请从
+	    	* https://github.com/aliyun/api-gateway-demo-sign-java/blob/master/src/main/java/com/aliyun/api/gateway/demo/util/HttpUtils.java
+	    	* 下载
+	    	*
+	    	* 相应的依赖请参照
+	    	* https://github.com/aliyun/api-gateway-demo-sign-java/blob/master/pom.xml
+	    	*/
+	    	HttpResponse response = HttpUtils.doGet(host, path, method, headers, querys);
+	    	System.out.println(response.toString());
+	    	String return_obj = EntityUtils.toString(response.getEntity());
+	    	JSONObject object =  JSON.parseObject(return_obj);
+	    	String result = object.getString("desc");
+	    	System.out.println(result);
+	    	return result;
+	    	//获取response的body
+	    	//System.out.println(EntityUtils.toString(response.getEntity()));
+	    } catch (Exception e) {
+	    	e.printStackTrace();
+	    }
+		return null;
+	}
+
+	/**
+	 * 邮箱认证
+	 * 
+	 * @param userId
+	 * @param email
+	 * @param authType 
+	 * @return
+	 */
+	public boolean mail_authentication(int userId, String email, String authType) {
+		UserEntity entity = appUserService.findById(userId);
+		Assert.notNull(entity);
+		
+	    Map<String, String> headers = new HashMap<String, String>();
+	    //最后在header中的格式(中间是英文空格)为Authorization:APPCODE 83359fd73fe94948385f570e3c139105
+	    headers.put("Authorization", "APPCODE " + AppCode);
+	    //根据API的要求，定义相对应的Content-Type
+	    headers.put("Content-Type", "application/x-www-form-urlencoded; charset=UTF-8");
+	    Map<String, String> querys = new HashMap<String, String>();
+	    Map<String, String> bodys = new HashMap<String, String>();
+	    bodys.put("bizNo", "ZM201612013000000242400404124269");
+	    bodys.put("name", entity.getName());
+	    bodys.put("certNo", entity.getCertNo());
+	    bodys.put("certType", "IDENTITY_CARD");
+	    bodys.put("email", email);
+	    
+	    try {
+	    	/**
+	    	* 相应的依赖请参照
+	    	* https://github.com/aliyun/api-gateway-demo-sign-java/blob/master/pom.xml
+	    	*/
+	    	HttpResponse response = HttpUtils.doPost(host, path, method, headers, querys, bodys);
+	    	String return_obj = EntityUtils.toString(response.getEntity());
+	    	JSONObject object =  JSON.parseObject(return_obj);
+	    	if(object.getString("success").equals("true")) {
+	    		return true;
+	    	}
+	    	//获取response的body
+	    	//System.out.println(EntityUtils.toString(response.getEntity()));
+	    } catch (Exception e) {
+	    	e.printStackTrace();
+	    }
+		return false;
+	}
+
+	/**
+	 * 手机号认证
+	 * 
+	 * @param userId
+	 * @param phone
+	 * @param authType 
+	 * @return
+	 * @throws Exception 
+	 */
+	public String phone_authentication(int userId, String phone, String authType) throws Exception {
+		String message = "";
+		UserEntity entity = appUserService.findById(userId);
+		
+		String host = "http://telecom-ali.juheapi.com";
+	    String path = "/telecom/query";
+	    String method = "GET";
+	    Map<String, String> headers = new HashMap<String, String>();
+	    //最后在header中的格式(中间是英文空格)为Authorization:APPCODE 83359fd73fe94948385f570e3c139105
+	    headers.put("Authorization", "APPCODE " + AppCode);
+	    Map<String, String> querys = new HashMap<String, String>();
+	    querys.put("idcard", entity.getCertNo());
+	    querys.put("mobile", phone);
+	    querys.put("realname", entity.getName());
+	    
+	    /**
+    	* 相应的依赖请参照
+    	* https://github.com/aliyun/api-gateway-demo-sign-java/blob/master/pom.xml
+    	*/
+    	HttpResponse response = HttpUtils.doGet(host, path, method, headers, querys);
+    	System.out.println(response.toString());
+    	String return_obj = EntityUtils.toString(response.getEntity());
+    	JSONObject object =  JSON.parseObject(return_obj);
+    	JSONObject result =  JSON.parseObject(object.getString("result"));
+    	if(Integer.parseInt(result.getString("res")) == 1) {
+    		message = "匹配";
+    	}else {
+    		message = result.getString("resmsg");
+    	}
+		return message;
+	}
+	
+}

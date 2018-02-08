@@ -1,0 +1,185 @@
+package com.xunxin.controller.system;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import javax.servlet.http.HttpSession;
+
+import org.apache.commons.lang.StringUtils;
+import org.apache.log4j.Logger;
+import org.apache.shiro.SecurityUtils;
+import org.apache.shiro.authc.DisabledAccountException;
+import org.apache.shiro.authc.ExcessiveAttemptsException;
+import org.apache.shiro.authc.ExpiredCredentialsException;
+import org.apache.shiro.authc.IncorrectCredentialsException;
+import org.apache.shiro.authc.LockedAccountException;
+import org.apache.shiro.authc.UnknownAccountException;
+import org.apache.shiro.authc.UsernamePasswordToken;
+import org.apache.shiro.authz.UnauthorizedException;
+import org.apache.shiro.subject.Subject;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.servlet.ModelAndView;
+
+import com.xunxin.service.MenuService;
+import com.xunxin.vo.admin.Admin;
+import com.xunxin.vo.admin.Menu;
+import com.xunxin.vo.admin.Resource;
+import com.xunxin.web.api.bean.Route;
+import com.xunxin.web.api.exception.LoginException;
+
+/**
+ * Copyright © 2017 noseparte(Libra) © Like the wind, like rain
+ * @Author Noseparte
+ * @Compile 2017年10月15日 -- 下午9:31:34
+ * @Version 1.0
+ * @Description 后台系统 入口
+ */
+@Controller
+@RequestMapping(value=Route.PATH+Route.Admin.PATH)
+public class AdminController extends BaseController{
+
+    private static final Logger log = Logger.getLogger(AdminController.class);
+    
+    @Autowired
+    private MenuService menuService;
+
+    /**
+     * 后台系统登录
+     * 
+     * @param user
+     * @param remember
+     * @param session
+     * @return
+     * @throws Exception
+     */
+    @RequestMapping(value=Route.Admin.LOGIN_TO_INDEX,method=RequestMethod.POST)
+    public ModelAndView userLogin(Admin user, @RequestParam(value = "remember", defaultValue = "") String remember,
+            @RequestParam(value = "verifyCode") String verifyCode, HttpSession session) throws Exception {
+        log.info("请求登录开始");
+        String msg = "";
+        ModelAndView modelAndView = new ModelAndView();
+        if(null == verifyCode) {
+            modelAndView.setViewName("login");
+        }
+        Admin usersession = (Admin) session.getAttribute("usersession");
+
+        if (usersession == null) {
+            modelAndView.setViewName("login");
+            boolean rememberMe = false;
+            if (remember.equals("on") || remember != "") {
+                rememberMe = true;
+            }
+            String accountName = user.getAdminName();
+            String password = user.getPassword();
+            if (accountName != "" && password != "") {
+                UsernamePasswordToken token = new UsernamePasswordToken(accountName, password);
+                token.setRememberMe(rememberMe);
+                Subject subject = SecurityUtils.getSubject();// 获得主体
+                try {
+                    subject.login(token);
+//                    System.out.println(subject.isAuthenticated());
+                    //判断验证码
+                    String code = (String) session.getAttribute("code");
+                    if(null == code) {
+                        modelAndView.setViewName("login");
+                        throw new ExpiredCredentialsException();
+                    }
+                    if(!StringUtils.isBlank(verifyCode) && !code.equalsIgnoreCase(verifyCode)) {
+                        throw new LoginException("验证码有误!");
+                    }
+                    if (subject.isAuthenticated()) {
+                        List<Map<String, Object>> retList = new ArrayList<Map<String, Object>>();
+                        //一级菜单
+                        List<Menu> menuList = menuService.getAll();
+                            if(null != menuList) {
+                                for(Menu m : menuList) {
+                                    Map<String, Object> map = new HashMap<String, Object>();
+                                    map.put("mainMenu", m);
+                                    //一级菜单所属的二级菜单
+                                    List<Menu> SubMenu = menuService.findByParentId(m.getId());
+                                    if(null != SubMenu && !SubMenu.isEmpty()) {
+                                        map.put("SubMenu", SubMenu);
+                                    }else {
+                                        map.put("SubMenu", "");
+                                    }
+                                    retList.add(map);
+                                }
+                            }
+                        log.info("登陆成功");
+                        modelAndView.setViewName("/jsp/system/admin/index");
+                        modelAndView.addObject("USERNAME", accountName);
+                        modelAndView.addObject("menuList", retList);
+                        return modelAndView;
+                    } else {
+                        msg = "登录失败";
+                    }
+                } catch (LoginException e) {
+                    msg = "验证码有误!";
+                    log.error(msg,e);
+                } catch (IncorrectCredentialsException e) {
+                    msg = "登录密码错误. Password for account " + token.getPrincipal() + " wasincorrect.";
+                    log.error(msg,e);
+                } catch (ExcessiveAttemptsException e) {
+                    msg = "登录失败次数过多";
+                    log.error(msg,e);
+                } catch (LockedAccountException e) {
+                    msg = "帐号已被锁定. The account for username " + token.getPrincipal() + " was locked.";
+                    log.error(msg,e);
+                } catch (DisabledAccountException e) {
+                    msg = "帐号已被禁用. The account for username " + token.getPrincipal() + "  was disabled.";
+                    log.error(msg,e);
+                } catch (ExpiredCredentialsException e) {
+                    msg = "帐号已过期. the account for username " + token.getPrincipal() + "  was expired.";
+                    log.error(msg,e);
+                } catch (UnknownAccountException e) {
+                    msg = "帐号不存在. There is no user with username of " + token.getPrincipal();
+                    log.error(msg,e);
+                } catch (UnauthorizedException e) {
+                    msg = "您没有得到相应的授权！" + e.getMessage();
+                    log.error(msg,e);
+                } finally {
+                    modelAndView.addObject("msg", msg);
+                }
+
+            } else {
+                msg = "用户名或密码为空";
+            }
+        } else {
+            modelAndView.setViewName("/jsp/system/admin/index");
+        }
+        List<Map<String, Object>> retList = new ArrayList<Map<String, Object>>();
+        List<Menu> menuList = menuService.getAll();
+        if(null != menuList) {
+            for(Menu m : menuList) {
+                Map<String, Object> map = new HashMap<String, Object>();
+                map.put("mainMenu", m);
+                //涓�绾ц彍鍗曟墍灞炵殑浜岀骇鑿滃崟
+                List<Menu> SubMenu = menuService.findByParentId(m.getId());
+                if(null != SubMenu && !SubMenu.isEmpty()) {
+                    map.put("SubMenu", SubMenu);
+                }else {
+                    map.put("SubMenu", "");
+                }
+                retList.add(map);
+            }
+        }
+        modelAndView.setViewName("/jsp/system/admin/index");
+        modelAndView.addObject("USERNAME", "admin");
+        modelAndView.addObject("menuList", retList);
+        List<Resource> rslist = (List<Resource>) session.getAttribute("resourceslist");
+        session.setAttribute("resourceslist", rslist);
+        log.info("登陆成功");
+        return modelAndView;
+    }
+    
+    
+    
+    
+    
+}

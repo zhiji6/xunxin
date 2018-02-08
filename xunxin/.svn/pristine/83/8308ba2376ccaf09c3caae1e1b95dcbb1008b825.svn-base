@@ -1,0 +1,171 @@
+package com.xunxin.service.app;
+
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.Reader;
+import java.text.SimpleDateFormat;
+import java.util.Date;
+import java.util.List;
+import java.util.zip.GZIPInputStream;
+
+import org.apache.log4j.Logger;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+import com.alibaba.fastjson.JSONObject;
+import com.github.pagehelper.PageHelper;
+import com.xunxin.dao.im.IMRecordMapper;
+import com.xunxin.util.page.PageInfo;
+import com.xunxin.util.page.PaginationContext;
+import com.xunxin.vo.im.IMRecord;
+import com.xunxin.vo.user.UserAuthentication;
+
+@Service("iMRecordService")
+public class IMRecordService {
+	
+	private static final Logger logger = Logger.getLogger(IMRecordService.class);
+
+	@Autowired
+	private IMRecordMapper iMRecordMapper;
+	
+	//保存消息记录
+	@SuppressWarnings("resource")
+	public   void saveImRecord(String filePath) {
+		
+		//String inFileName = "E:\\develop\\chat\\2017112209.gz";
+		String inFileName = filePath;
+		logger.info("读取路径"+inFileName);
+        try {
+
+            if (!getExtension(inFileName).equalsIgnoreCase("gz")) {
+                System.err.println("File name must have extension of \".gz\"");
+                System.exit(1);
+            }
+
+            System.out.println("Opening the compressed file.");
+            GZIPInputStream in = null;
+            try {
+                in = new GZIPInputStream(new FileInputStream(inFileName));
+            } catch(FileNotFoundException e) {
+                System.err.println("File not found. " + inFileName);
+                System.exit(1);
+            }
+
+            System.out.println("Open the output file.");
+            String outFileName = getFileName(inFileName);
+            FileOutputStream out = null;
+            try {
+                out = new FileOutputStream(outFileName);
+            } catch (FileNotFoundException e) {
+                System.err.println("Could not write to file. " + outFileName);
+            }
+
+            System.out.println("Transfering bytes from compressed file to the output file.");
+            byte[] buf = new byte[1024];
+            int len;
+            while((len = in.read(buf)) > 0) {
+                out.write(buf, 0, len);
+            }
+
+            int tempchar;
+            Reader reader = null;
+            reader = new InputStreamReader(new FileInputStream(outFileName),"UTF-8");
+            StringBuffer sb = new StringBuffer();
+            while ((tempchar = reader.read()) != -1) {
+                // 对于windows下，\r\n这两个字符在一起时，表示一个换行。
+                // 但如果这两个字符分开显示时，会换两次行。
+                // 因此，屏蔽掉\r，或者屏蔽\n。否则，将会多出很多空行。
+                if (((char) tempchar) != '\r') {
+                	if(((char) tempchar) != '\n'){
+                		sb.append((char) tempchar);
+                	}
+                	
+                	if('\n' == ((char) tempchar)){
+                		IMRecord imr = new IMRecord();
+                		JSONObject object = JSONObject.parseObject(sb.toString());
+                		
+                		if(object != null && object.get("msg_id")!= null){
+                			imr.setMsgId(object.getString("msg_id"));
+                			IMRecord record = iMRecordMapper.selectByPrimaryKey(imr.getMsgId());
+                			if(record != null){
+                				continue;
+                			}
+                		}
+                		if(object != null && object.get("timestamp")!= null){
+//                			imr.setCreateDate(new Date(Long.parseLong((String) object.get("timestamp"))));
+                			imr.setCreateDate(new Date(object.getLongValue("timestamp")));
+                		}
+                		if(object != null && object.get("direction")!= null){
+                			imr.setDirection(object.getString("direction"));
+                		}
+                		if(object != null && object.get("to")!= null){
+                			imr.setToUser((object.getString("to")));
+                		}
+                		if(object != null && object.get("from")!= null){
+                			imr.setFromUser(object.getString("from"));
+                		}
+                		if(object != null && object.get("chat_type")!= null){
+                			imr.setChatType(object.getString("chat_type"));
+                		}
+                		if(object != null && object.get("payload")!= null){
+                			imr.setPayload(object.get("payload").toString());
+                		}
+                		iMRecordMapper.insert(imr);
+                		sb.delete(0, sb.length());
+                	}
+                }
+            }
+            System.out.println("Closing the file and stream");
+            in.close();
+            out.close();
+
+        } catch (IOException e) {
+            e.printStackTrace();
+        } catch (Exception e) {
+			e.printStackTrace();
+		}
+		
+		
+	}
+    /**
+     * Used to extract and return the extension of a given file.  
+     * @param f Incoming file to get the extension of  
+     * @return <code>String</code> representing the extension of the incoming  
+     *         file.  
+     */
+    public static String getExtension(String f) {
+        String ext = "";
+        int i = f.lastIndexOf('.');
+
+        if (i > 0 &&  i < f.length() - 1) {
+            ext = f.substring(i+1);
+        }
+        return ext;
+    }
+
+    /**
+     * Used to extract the filename without its extension.  
+     * @param f Incoming file to get the filename  
+     * @return <code>String</code> representing the filename without its  
+     *         extension.  
+     */
+    public static String getFileName(String f) {
+        String fname = "";
+        int i = f.lastIndexOf('.');
+
+        if (i > 0 &&  i < f.length() - 1) {
+            fname = f.substring(0,i);
+        }
+        return fname;
+    }
+    
+    //消息记录分页
+	public PageInfo<IMRecord> findPageList(IMRecord iMRecord) {
+		PageHelper.startPage(PaginationContext.getPageNum(), PaginationContext.getPageSize());
+        List<IMRecord> list = iMRecordMapper.findPageList(iMRecord);
+        return new PageInfo<IMRecord>(list);
+	}
+}

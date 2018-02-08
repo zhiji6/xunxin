@@ -1,0 +1,51 @@
+﻿<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:context="http://www.springframework.org/schema/context"
+	xmlns:aop="http://www.springframework.org/schema/aop" xmlns:util="http://www.springframework.org/schema/util"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
+				http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context.xsd
+				http://www.springframework.org/schema/aop http://www.springframework.org/schema/aop/spring-aop.xsd
+				http://www.springframework.org/schema/util http://www.springframework.org/schema/util/spring-util-3.0.xsd
+				">
+				
+	<!-- <context:annotation-config/> -->
+	
+	<!-- 总管理类 如果将lazy-init='false'那么容器启动就会执行调度程序  -->
+    <bean id="startQuertz" lazy-init="false" autowire="no"
+        class="org.springframework.scheduling.quartz.SchedulerFactoryBean">
+        <property name="triggers">
+            <list>
+                <ref bean="xQuarztServiceQuartzTiggerDay"/><!--定时更新Lucene索引库 -->
+                <ref bean="initializeServiceQuartzDitail"/><!--定时更新Lucene索引库 -->
+            </list>
+        </property>
+    </bean>
+    
+    <!--定时更新Lucene索引库 -->
+    <bean id="xQuarztService"   class="com.xunxin.config.XQuarztService"/>
+    <bean id="initializeServiceQuartzDitail" class="org.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean">
+        <property name="targetObject" ref="xQuarztService"></property><!-- 指定任务类 -->
+        <property name="targetMethod" value="initialize"></property><!-- 赔付任务方法 -->
+    </bean>
+    <bean id="initializeServiceQuartzTiggerDay" class="org.springframework.scheduling.quartz.CronTriggerFactoryBean">
+        <property name="jobDetail" ref="initializeServiceQuartzDitail"></property>
+        <property name="cronExpression">
+             <value>0 0/2 0/1 * * ?</value> 
+             <!-- 0 0/5 0/1 * * ? -->
+        </property>
+    </bean> 
+    <bean id="expernServiceQuartzDitail" class="org.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean">
+        <property name="targetObject" ref="xQuarztService"></property><!-- 指定任务类 -->
+        <property name="targetMethod" value="updateLuceneIndex"></property><!-- 赔付任务方法 -->
+    </bean>
+    <bean id="xQuarztServiceQuartzTiggerDay" class="org.springframework.scheduling.quartz.CronTriggerFactoryBean">
+        <property name="jobDetail" ref="expernServiceQuartzDitail"></property>
+        <property name="cronExpression">
+             <value>0 0/1 0/1 * * ?</value> 
+             <!-- 0 0/5 0/1 * * ? -->
+        </property>
+    </bean> 
+            <!-- 0 0/30 0/1 * * ? 代表每天每30分钟运行一次 -->
+            <!-- 0 0/5 0/1 * * ? 代表每天每5分钟运行一次 -->
+    
+</beans>

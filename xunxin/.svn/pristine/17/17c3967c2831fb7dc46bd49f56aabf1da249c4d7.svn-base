@@ -1,0 +1,41 @@
+package com.xunxin.constants;
+
+/**
+ * 
+ * Copyright © 2017 Xunxin Network Technology Co. Ltd.
+ *
+ * @Author Noseparte
+ * @Compile 2018年1月6日 -- 下午3:33:37
+ * @Version 1.0
+ * @Description     积分类型
+ */
+public class ExpConstants {
+
+    //收入|支出
+    public static final String INCOME = "income";
+    public static final String EXPEND = "expend";
+    
+/** #######################          收入项                         ######################## */
+    public static final String SING_IN = "每日登录";
+    public static final String ARECORD_QUESTION = "Q&A参与";
+    public static final String ARECORD_TOP = "答题TOP10";  //1=100分 2=80分 3=60分 其余排名50分
+    public static final String VOLUNTEER_AUDIT = "志愿者审核Q&A";  //+5/题
+    public static final String AUTHENTICATION = "认证";      //50/项
+    public static final String TEMPLATE = "转盘游戏";      //
+    public static final String SHARE_CIRCLE = "分享软件";  //+10/次
+    public static final String OFFER_REWORD = "回答悬赏问题";      //+1/题
+    public static final String QUESTION_ONLINE = "发布问题上线";      //+2/题
+    public static final String FIXED_ANSWER = "评论被顶为固定答案";      //+50/题
+    public static final String ADD_EXP = "系统赠送";      //
+    public static final String ADD_SIGN = "每日签到";      //
+    public static final String QA_SEND = "Q&A发布";      //+2
+
+/** #######################          支出项                         ######################## */
+    public static final String AUDIT_MISSTAKE = "志愿者审核失误";  //-10/题
+    public static final String REPORT = "被举报";     //-100/次
+    public static final String SEND_SELF_PORTRAIT = "发送自画像";    //-50/次
+    public static final String QA_PROPORTION = "查看观点比例";    //-50/次  24小时内改扣积分 24小时后每24小时可更改一次
+    public static final String CHNAGE_ANSWER = "更改观点";
+    public static final String VIEW_CIRCLE_PHOTO = "查看蒙版图";    //-10/次 所有消费活动遵循扣 福利→积分→现金
+    
+}

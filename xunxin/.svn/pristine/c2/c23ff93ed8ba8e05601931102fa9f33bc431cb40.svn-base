@@ -1,0 +1,544 @@
+package com.xunxin.service.app;
+
+import java.io.IOException;
+import java.lang.reflect.Field;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
+import java.text.SimpleDateFormat;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import org.apache.commons.lang3.StringUtils;
+import org.apache.http.HttpResponse;
+import org.apache.http.ParseException;
+import org.apache.http.util.EntityUtils;
+import org.apache.log4j.Logger;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+import com.alibaba.fastjson.JSON;
+import com.alibaba.fastjson.JSONObject;
+import com.google.gson.JsonArray;
+import com.google.gson.JsonObject;
+import com.xunxin.dao.app.user.AppUserDao;
+import com.xunxin.dao.app.user.UserChangeInformationRecordDao;
+import com.xunxin.dao.sys.SystemCountryEntityDao;
+import com.xunxin.service.SystemEntityService;
+import com.xunxin.util.APIHttpClient;
+import com.xunxin.util.MapRemoveNullUtil;
+import com.xunxin.util.app.IDGeneratorUtil;
+import com.xunxin.util.app.ValidationUtil;
+import com.xunxin.vo.app.exception.LoginExceptionConstant;
+import com.xunxin.vo.app.exception.RegisterExceptionConstant;
+import com.xunxin.vo.condition.UserCondition;
+import com.xunxin.vo.condition.UserSearchCondition;
+import com.xunxin.vo.im.UserMatch;
+import com.xunxin.vo.sys.PageData;
+import com.xunxin.vo.user.UserChangeInformationRecord;
+import com.xunxin.vo.user.UserEntity;
+import com.xunxin.web.api.exception.EasemobExceptionConstant;
+import com.xunxin.web.api.exception.LoginException;
+import com.xunxin.web.api.exception.RegisterException;
+
+
+/**
+ * Copyright © 2017 noseparte(Libra) © Like the wind, like rain
+ * @Author Noseparte
+ * @Compile 2017年10月11日 -- 下午4:57:41
+ * @Version 1.0
+ * @Description	app端的用户监管
+ */
+@Service("appUserService")
+public class AppUserService {
+
+	private static final Logger logger = Logger.getLogger(AppUserService.class);
+	
+	private static final String LINKED_URL = "https://a1.easemob.com/";
+	private static String ORG_NAME = "1169171019178830";
+	private static String APP_NAME = "followheart";
+	private static String APP_KEY = "1169171019178830#followheart";
+	private static String CLIENT_ID = "YXA6NP3IoLU5EeeFYb2Ezl1kjA";
+	private static String CLIENT_SECRET = "YXA6GHZ-YXA6GHZ-D1VEKlCwCwFYH5uBBgaSo6I";
+	private static String GRANT_TYPE= "client_credentials";
+	
+	@Autowired
+	private AppUserDao appUserDao;
+/*	@Resource
+	private EasemobIMUsers easemobIMUsers;*/
+	@Autowired
+	private MessageService messageService;
+	@Autowired
+	private UserChangeInformationRecordDao userChangeInformationRecordDao;
+	@Autowired
+	private UserFriendsService userFriendsService;
+	@Autowired
+	private SystemEntityService systemEntityDao;
+	
+	
+	/**
+	 * 用户注册
+	 * 
+	 * @param phone
+	 * @param verifyCode
+	 * @param user_password
+	 * @return
+	 */
+	public boolean register(String phone, int verifyCode, String user_password) {
+		try {
+		String username = phone;	//环信 ID  
+		String password = "xunxin" + phone;	//环信 密码
+		//ps: {username:15764268350,password:xunxin15764268350}
+		//----------------------------
+			//注册IM[单个]
+			String url = LINKED_URL + ORG_NAME + "/" + APP_NAME + "/" + "users";
+			JsonArray arry = new JsonArray();  
+			JsonObject j = new JsonObject();  
+			j.addProperty("username", username);  
+			j.addProperty("password", password);  
+			arry.add(j);  
+			
+			APIHttpClient ac = new APIHttpClient(url);  
+			HttpResponse response = ac.post(arry.toString());
+			String return_obj = EntityUtils.toString(response.getEntity());
+			int statusCode = response.getStatusLine().getStatusCode(); 
+			if(statusCode != 200) {
+				JSONObject register_obj = JSON.parseObject(return_obj);
+				String error = register_obj.getString("error");
+				if(error != null && error.equals("duplicate_unique_property_exists")) {
+					System.out.println("环信已经注册");
+				}
+				if(error.equals("invalid_grant")) {
+					throw new RegisterException(EasemobExceptionConstant.NAME_OR_PASSWORD_ERROR);
+				}
+			}
+			
+			//手机号输入有误
+			if(!ValidationUtil.isChinaPhoneLegal(phone)) {
+				throw new RegisterException(RegisterExceptionConstant.PHONE_NUMBER_IS_WRONG); 
+			}
+			int isExist = appUserDao.findByPhone(phone);
+			//用户已存在
+			if(isExist == 1) {
+				throw new RegisterException(RegisterExceptionConstant.LOGIN_NAME_IS_EXIST);
+			}
+			//验证码
+			int code = messageService.findLastOneByPhone(phone);
+			if(verifyCode != code) {
+				throw new RegisterException(RegisterExceptionConstant.VERIFY_CODE_ERROR);
+			}
+			//密码输入有误
+			if(!ValidationUtil.matchPassWord(user_password)) {
+				throw new RegisterException(RegisterExceptionConstant.PASSWORD_ERROR);
+			}
+			//一切正常，开始进入注册流程
+			UserEntity entity = new UserEntity(phone, IDGeneratorUtil.createAppCode(), 0, user_password, new Date());
+			appUserDao.save(entity); //TODO
+			//大功告成
+			return true;
+		} catch (ParseException | IOException e) {
+			e.printStackTrace();
+		}
+		return false;
+	}
+
+	public UserEntity login(String phone, String password) {
+		int existState = appUserDao.findByPhone(phone);
+		if(existState != 1) {
+			throw new LoginException(LoginExceptionConstant.UNKNOW_USER);
+		}
+		UserEntity user = appUserDao.findOne(phone);
+		if(!password.equals(user.getPassword())) {
+			throw new LoginException(LoginExceptionConstant.PASSWORD_ERROR);
+		}else {
+			return user;
+		}
+	}
+
+	public int getCertificationDegree(String phone) {
+		return appUserDao.getCertificationDegree(phone);
+	}
+
+	public UserEntity findOne(String phone) {
+		return appUserDao.findOne(phone);
+	}
+
+	/**
+	 * 完善基本资料
+	 * 
+	 * @param phone	手机号 用于查找用户
+	 * @param nickname	昵称
+	 * @param age	年龄
+	 * @param sexualOrientation 性取向
+	 * @param address	地址
+	 * @param height 身高
+	 * @param profession 职业
+	 * @param trade	行业
+	 * @param position	职位
+	 * @param income	收入
+	 * @param education	学历
+	 * @param williamsCollege	毕业院校
+	 * @param relationshipStatus	感情状态
+	 * @param makeFriendWay	交友方式
+	 * @return
+	 */
+	public UserEntity complete_basics_information(int userId, String name,String nickName, int age, int sex,String gender,String sexualOrientation,
+			String address, int height, String profession, String trade, String position, String income, String education,
+			String williamsCollege, String relationshipStatus, String makeFriendWay) {
+		UserEntity entity = appUserDao.findById(userId);
+		if(null != entity) {
+			UserCondition uc = new UserCondition(userId, name, nickName, sex, gender, age, sexualOrientation, 
+					address, height, profession, trade, position, income, education, williamsCollege, 
+					relationshipStatus, makeFriendWay,UserEntity.UNUSUAL);
+			appUserDao.complete_basics_information(uc);
+			appUserDao.completeness(userId,50);
+			return entity;
+		}
+		return null;
+	}
+
+	/**
+	 * 完善详细资料
+	 * 
+	 * @param phone	手机号
+	 * @param introduce	独白+自我介绍
+	 * @param housingConditions	住房情况
+	 * @param trafficTools	交通工具
+	 * @param weight	体重
+	 * @param nation	民族
+	 * @param nationality	国籍
+	 * @param nativePlace	籍贯
+	 * @param censusRegister	户籍
+	 * @param familyOrder	家中排行
+	 * @param haveChild	有无子女
+	 * @param religiousBelief	宗教信仰
+	 * @param constellation	星座
+	 * @param zodiac	生肖
+	 * @param blood		血型
+	 * @return    {"column":
+	 */
+	public boolean complete_particular_information(int userId, String introduce, String housingConditions,
+			String trafficTools, int weight, String nation, String nationality, String nativePlace, String censusRegister,
+			String familyOrder, String haveChild, String religiousBelief, String constellation, String zodiac,
+			String blood) {
+		UserEntity entity = appUserDao.findById(userId);
+		PageData pd = new PageData<>();
+		if(null != entity) {
+			pd.put("introduce", introduce);
+			pd.put("housingConditions", housingConditions);
+			pd.put("trafficTools", trafficTools);
+			pd.put("weight", weight);
+			pd.put("nation", nation);
+			pd.put("nationality", nationality);
+			pd.put("nativePlace", nativePlace);
+			pd.put("censusRegister", censusRegister);
+			pd.put("familyOrder", familyOrder);
+			pd.put("haveChild", haveChild);
+			pd.put("religiousBelief", religiousBelief);
+			pd.put("constellation", constellation);
+			pd.put("zodiac", zodiac);
+			pd.put("blood", blood);
+			pd.put("userId", userId);
+			appUserDao.complete_particular_information(pd);
+			if(introduce != null && !StringUtils.trim(introduce).equals("")){
+			    appUserDao.completeness(userId, entity.getCompleteness()+5);
+			}
+			if(censusRegister != null && !StringUtils.trim(censusRegister).equals("")){
+			    appUserDao.completeness(userId, entity.getCompleteness()+5);
+			}
+			pd.remove(introduce);
+			pd.remove(censusRegister);
+			MapRemoveNullUtil.removeNullValue(pd); 
+			if(pd.size() / 3 > 1) {
+			    appUserDao.completeness(userId, entity.getCompleteness()+10*(pd.size() / 3));
+			}
+			return true;
+		}
+		return false;
+	}
+
+	public boolean complete_album_information(String photo) {
+		return appUserDao.complete_album_information(photo);
+	}
+
+	/**
+	 * 修改密码
+	 * 
+	 * @param phone
+	 * @param preWord
+	 * @param newWord
+	 * @return
+	 */
+	public boolean update_password(String phone, String preWord, String newWord) {
+		UserEntity entity = appUserDao.findOne(phone);
+		if(null != entity) {
+			if(!entity.getPassword().equals(preWord)) {
+				throw new LoginException(LoginExceptionConstant.PASSWORD_ERROR);
+			}else {
+				appUserDao.update_pwd(phone,newWord);
+				return true;
+			}
+		}
+		return false;
+	}
+
+	/**
+	 * 忘记密码
+	 * 
+	 * @param phone
+	 * @param verifyCode
+	 * @param newWord
+	 * @return
+	 */
+	public boolean forget_password(String phone, String newWord) {
+		UserEntity entity = appUserDao.findOne(phone);
+		if(null != entity) {
+			int code = messageService.findLastOneByPhone(phone);
+			appUserDao.update_pwd(phone,newWord);
+			return true;
+		}
+		return false;
+	}
+
+	public int is_authentication(int userId) {
+		return appUserDao.is_authentication(userId);
+	}
+	public String findUserNameByUserId(Integer userId) {
+		 UserEntity user = appUserDao.findUserById(userId);
+		 if(user != null){
+			 return user.getNickName();
+		 }else{
+			 return null;
+		 }
+		 
+	}
+
+	public UserEntity findById(int userId) {
+		return appUserDao.findById(userId);
+	}
+
+	public String findUserPhoneByUserId(Integer userId) {
+		return appUserDao.findUserPhoneByUserId(userId);
+	}
+
+	public void setup_password(int userId, String password) {
+		appUserDao.setup_password(userId,password);
+	}
+
+	public Map<String, Object> getUsualInfo(int userId) {
+		UserEntity user = appUserDao.findById(userId);
+		Map<String, Object> map = new HashMap<>();
+		map.put("gender", user.getGender());
+		map.put("name", user.getName());
+		map.put("age", user.getAge());
+		map.put("sexualOrientation", user.getSexualOrientation());
+		map.put("relationshipStatus", user.getRelationshipStatus());
+		map.put("makeFriendWay", user.getMakeFriendWay());
+		map.put("address", user.getAddress());
+//		map.put("nickName", user.getNickName());
+		return map;
+	}
+
+
+	public List<UserEntity> findUserListByAge(Integer userId, Integer age) {
+		return appUserDao.findUserListByAge(userId,age);
+	}
+	
+	public Object getByColum(int userId, String col) throws NoSuchFieldException, SecurityException {
+		UserEntity user = appUserDao.findById(userId);
+		PageData pd = new PageData<>();
+		pd.put("name", user.getName());
+        pd.put("nickName", user.getNickName());
+        pd.put("gender", user.getGender());
+        pd.put("age", user.getAge());
+        pd.put("sexualOrientation", user.getSexualOrientation());
+        pd.put("address", user.getAddress());
+        pd.put("height", user.getHeight());
+        pd.put("profession", user.getProfession());
+        pd.put("trade", user.getTrade());
+        pd.put("position", user.getPosition());
+        pd.put("income", user.getIncome());
+        pd.put("education", user.getEducation());
+        pd.put("williamsCollege", user.getWilliamsCollege());
+        pd.put("relationshipStatus", user.getRelationshipStatus());
+        pd.put("makeFriendWay", user.getMakeFriendWay());
+        
+        pd.put("introduce", user.getIntroduce());
+        pd.put("housingConditions", user.getHousingConditions());
+        pd.put("trafficTools", user.getTrafficTools());
+        pd.put("weight", user.getWeight());
+        pd.put("nation", user.getNation());
+        //国籍
+        String country =  systemEntityDao.findCountryById(Integer.parseInt(user.getNationality())).getName_Chinese();
+        pd.put("nationality", country);
+        //籍贯
+        String[] addrs = user.getNativePlace().replace("[","").replace("]", "").trim().split(",");
+        String nativePlace = "";
+        for(String addr : addrs) {
+            nativePlace +=  systemEntityDao.findNameByCode(addr).getName();
+        }
+        pd.put("nativePlace", nativePlace);
+        //户籍
+        String[] censusRegisters = user.getCensusRegister().replace("[","").replace("]", "").trim().split(",");
+        String censusRegister = "";
+        for(String addr : censusRegisters) {
+            censusRegister +=  systemEntityDao.findNameByCode(addr).getName();
+        }
+        pd.put("censusRegister", censusRegister);
+        pd.put("familyOrder", user.getFamilyOrder());
+        pd.put("haveChild", user.getHaveChild());
+        pd.put("religiousBelief", user.getReligiousBelief());
+        pd.put("constellation", user.getConstellation());
+        pd.put("zodiac", user.getZodiac());
+        pd.put("blood", user.getBlood());
+        pd.put("completeness", user.getCompleteness());
+        
+		return pd.get(col);
+	}
+	
+	public Integer findUserGradeByUserId(Integer userId) {
+		return appUserDao.findUserGradeByUserId(userId);
+	}
+
+	public String findUserGenderByUserId(Integer userId) {
+		return appUserDao.findUserGenderByUserId(userId);
+	}
+
+	public List<Integer> findAllNotUserId(Integer userId) {
+		return appUserDao.findAllNotUserId(userId);
+	}
+
+	public List<UserMatch> findUserListByUser(List<Integer> userIdList) {
+		return appUserDao.findUserListByUser(userIdList);
+	}
+
+	/**
+	 * 编辑用户资料
+	 * 
+	 * @param pd
+	 * @throws InvocationTargetException 
+	 * @throws IllegalArgumentException 
+	 * @throws IllegalAccessException 
+	 */
+	public void edit_user_information(PageData pd) throws IllegalAccessException, IllegalArgumentException, InvocationTargetException {
+	
+		int userId = (int) pd.get("userId");
+		UserEntity user = appUserDao.findById(userId);
+		
+		String fieldName = pd.getString("fieldName");
+		String fieldValue = pd.getString("fieldValue");
+		
+		Method[] methods = user.getClass().getMethods();
+		
+		Field[] fields = user.getClass().getFields();
+		for(Field fidle : fields) {
+			if(fieldName.equals(fidle.getName())) {
+				for(Method m : methods) {
+					if(m.getName().equalsIgnoreCase("set" + fieldName)) {
+						if(fieldName.equals("name") || fieldName.equals("age") || fieldName.equals("nation") || fieldName.equals("nativePlace") || 
+								fieldName.equals("familyOrder") || fieldName.equals("constellation") || fieldName.equals("zodiac") ||fieldName.equals("blood")) {
+							List<UserChangeInformationRecord> changeList = userChangeInformationRecordDao.findByUserIdAndField(userId,fieldName);
+							if(changeList.size() >= 1) {
+								throw new LoginException(LoginExceptionConstant.CONTANT_CUSTOMER_SERVICE);
+							}
+						}else {
+						    List<UserChangeInformationRecord> changeList = userChangeInformationRecordDao.findByUserIdAndField(userId,fieldName);
+						    if(changeList.size() >= 1) {
+						        throw new LoginException(LoginExceptionConstant.SIX_MONTH_LATER);
+						    }
+						}
+						PageData newPd = new PageData<>();
+						newPd.put(fieldName, fieldValue);
+						newPd.put("userId", userId);
+						SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+						appUserDao.edit_user_information(newPd);
+						String changeRemark = "用户：" + user.getNickName() + "--于:---" + sdf.format(new Date()) + "修改了" + fieldName ;
+						UserChangeInformationRecord record = new UserChangeInformationRecord(fieldName, fieldValue, changeRemark, new Date(), userId);
+						userChangeInformationRecordDao.save(record);
+					}
+				}
+			}
+		}
+	
+	}
+
+	/**
+	 * 积分变动
+	 * 
+	 * @param userId
+	 * @param userExp
+	 */
+	public void user_exp_change(int userId, int userExp) {
+		appUserDao.user_exp_change(userId,userExp);
+	}
+	
+	/**
+	 * 金额变动
+	 * 
+	 * @param userId
+	 * @param userExp
+	 */
+	public void user_amount_change(int userId, double amount) {
+	    appUserDao.user_amount_change(userId,amount);
+	}
+	
+	public List<UserEntity> getUserList(UserSearchCondition condition) {
+	    return appUserDao.getUserList(condition);
+	}
+	//用户在线状态更新
+	public void updateIsLogin(Integer userId, Integer isLogin) {
+		appUserDao.updateIsLogin(userId,isLogin);
+	}
+	//获取匹配信息
+	public Map<String, Object> queryMatchMessage(Integer userId, Integer anotherUserId) {
+		
+		Map<String, Object> map = appUserDao.queryMatchMessage(anotherUserId);
+		Boolean login = (Boolean) map.get("is_login");
+		if(login){
+			map.put("is_login", 1);
+		}else{
+			map.put("is_login", 0);
+		}
+		boolean flag = userFriendsService.isAttention(userId,anotherUserId);
+		if(flag){
+			map.put("attention", 0);
+		}else{
+			map.put("attention", 1);
+		}
+		return map;
+		
+	}
+
+    public void user_block(int userId, int ishiden) {
+        appUserDao.user_block(userId,ishiden);
+    }
+
+    //获取用户积分
+	public Integer queryUserExp(Integer userId) {
+		return appUserDao.queryUserExp(userId);
+	}
+	//消息设置
+	public void messageSetting(Integer userId, String setting, Integer isDelete) {
+		appUserDao.messageSetting(userId,setting,isDelete);
+		
+	}
+	//查询自画像设置
+	public Integer findUserSelfPortraitUserId(Integer anotherId) {
+		return appUserDao.querySelfPortraitUserId(anotherId);
+	}
+	//获取用户金额
+	public Double queryUserAmount(Integer userId) {
+		return appUserDao.queryUserAmount(userId);
+	}
+
+	//认证邮箱
+    public void setEmail(int userId, String email) {
+        appUserDao.setEmail(userId,email);
+    }
+
+	
+	
+	
+	
+}

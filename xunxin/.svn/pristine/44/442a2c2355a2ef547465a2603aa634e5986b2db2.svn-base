@@ -1,0 +1,139 @@
+package com.xunxin.controller.app.user;
+
+import java.util.ArrayList;
+import java.util.List;
+
+import org.apache.commons.lang3.StringUtils;
+import org.apache.log4j.Logger;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.mongodb.core.query.Criteria;
+import org.springframework.data.mongodb.core.query.Query;
+import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.ResponseBody;
+
+import com.xunxin.controller.system.BaseController;
+import com.xunxin.service.ArecordService;
+import com.xunxin.service.ThirdPayService;
+import com.xunxin.service.TransferRecordService;
+import com.xunxin.service.app.AppUserService;
+import com.xunxin.service.app.CommentService;
+import com.xunxin.service.app.QASectionService;
+import com.xunxin.service.app.RechargeRecordService;
+import com.xunxin.service.app.SelfPortraitService;
+import com.xunxin.service.app.UserAlbumService;
+import com.xunxin.service.app.qa.AnswerService;
+import com.xunxin.service.app.qa.QACollectionRecordService;
+import com.xunxin.service.app.qa.QAttentionRecordService;
+import com.xunxin.service.app.qa.QuestionService;
+import com.xunxin.service.app.qa.XTagLibraryService;
+import com.xunxin.service.app.square.QAImageUrlRecordService;
+import com.xunxin.service.app.square.UserAccessLinkedRecordService;
+import com.xunxin.service.app.user.UserAmountChangeRecordService;
+import com.xunxin.service.app.user.UserAuthenticationService;
+import com.xunxin.service.app.user.UserChangeInformationRecordService;
+import com.xunxin.service.app.user.UserDynamicRecordService;
+import com.xunxin.service.app.user.UserExpChangeRecordService;
+import com.xunxin.service.app.user.UserInterestPointService;
+import com.xunxin.service.app.user.UserSelfPortraitService;
+import com.xunxin.vo.account.UserAmountChangeRecord;
+import com.xunxin.vo.sys.PageData;
+import com.xunxin.vo.user.UserEntity;
+import com.xunxin.vo.user.UserInfoData;
+import com.xunxin.web.api.bean.Response;
+import com.xunxin.web.api.bean.Router;
+
+/**
+ * 
+ * Copyright © 2017 Xunxin Network Technology Co. Ltd.
+ *
+ * @Author Noseparte
+ * @Compile 2018年1月6日 -- 下午4:35:17
+ * @Version 1.0
+ * @Description     用户交易中心
+ */
+@Controller
+@RequestMapping(value=Router.PATH+Router.Payment.PATH)
+public class UserPaymentController extends BaseController{
+
+    private final static Logger log = Logger.getLogger(UserPaymentController.class);
+    
+    @Autowired
+    private UserAmountChangeRecordService userAmountChangeRecordService;
+    @Autowired
+    private AppUserService appUserService;
+
+    /**
+     * 我的钱包
+     * 
+     * @param userId
+     * @return
+     */
+    @RequestMapping(value=Router.Payment.USER_ACCOUNT,method=RequestMethod.POST)
+    @ResponseBody
+    public Response user_account(@RequestParam("userId") int userId) {
+        log.info("infoMsg:--- 获取我的钱包开始");
+        Response reponse = this.getReponse();
+        PageData pd = new PageData<>();
+        try {
+            UserEntity user = appUserService.findById(userId);
+            pd.put("amount", user.getAmount());
+            log.info("infoMsg:--- 获取我的钱包结束");
+            return reponse.success(pd);
+        } catch (Exception e) {
+            log.info("errorMsg:{--- 获取我的钱包失败：" + e.getMessage() + "---}");
+            return reponse.failure(e.getMessage());
+        }
+    }
+    
+    /**
+     * 用户交易明细
+     * 
+     * @param userId
+     * @param direction     income|expend
+     * @return
+     */
+    @RequestMapping(value=Router.Payment.USER_ACCOUNT_SETUP,method=RequestMethod.POST)
+    @ResponseBody
+    public Response user_account_setup(@RequestParam("userId") int userId,@RequestParam("direction") String direction) {
+        log.info("infoMsg:--- 获取用户交易明细开始");
+        Response reponse = this.getReponse();
+        List<PageData> pdList = new ArrayList<>();
+        try {
+            Query amountQuery = new Query();
+            if(!StringUtils.trim(direction).equals("") && !StringUtils.isBlank(direction)){
+                amountQuery.addCriteria(Criteria.where("direction").is(direction));
+            }
+            amountQuery.addCriteria(Criteria.where("userId").is(userId));
+            List<UserAmountChangeRecord> amountList = userAmountChangeRecordService.find(amountQuery);
+            for(UserAmountChangeRecord record : amountList) {
+                PageData pd = new PageData<>();
+                pd.put("createTime", record.getCreateTime());
+                pd.put("amount", record.getTansferAmount());
+                pd.put("changeType", record.getChangeType());
+                pdList.add(pd);
+            }
+            log.info("infoMsg:--- 获取用户交易明细结束");
+            return reponse.success(pdList);
+        } catch (Exception e) {
+            log.info("errorMsg:{--- 获取用户交易明细失败：" + e.getMessage() + "---}");
+            return reponse.failure(e.getMessage());
+        }
+    }
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+}

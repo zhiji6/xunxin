@@ -1,0 +1,62 @@
+package com.xunxin.service.app;
+
+import java.util.Date;
+import java.util.List;
+
+import org.apache.log4j.Logger;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.mongodb.core.query.Criteria;
+import org.springframework.data.mongodb.core.query.Query;
+import org.springframework.stereotype.Repository;
+
+import com.xunxin.dao.impl.SelfPortraitDaoImpl;
+import com.xunxin.vo.im.SelfPortrait;
+
+@Repository
+public class SelfPortraitService extends SelfPortraitDaoImpl{
+
+	private static final Logger logger = Logger.getLogger(SelfPortraitService.class);
+	@Autowired
+	private UserFriendsService userFriendsService;
+	@Autowired
+	private AppUserService appUserService;
+	//发送自画像权限
+	public Boolean queryJurisdiction(int userId, Integer anotherId) {
+		Integer grade = appUserService.findUserGradeByUserId(userId);
+		Integer setting = appUserService.findUserSelfPortraitUserId(anotherId);
+		if(grade != null && grade.equals(0)){
+			return false;
+		}
+		if(setting != null && setting.equals(1) && grade!=null && grade.intValue() <2){
+			return false;
+		}
+		Query query = new Query();
+		query.addCriteria(Criteria.where("isDelete").is(false));
+		query.addCriteria(Criteria.where("type").is("selfPortrait"));
+		query.addCriteria(Criteria.where("userId").is(userId));
+		Date date = userFriendsService.getMorningHours(new Date());
+		query.addCriteria(Criteria.where("createTime").gt(date));
+		List<SelfPortrait> list = find(query);
+		if(grade != null && grade.equals(1)){
+			return list.size() < 11 ? true :false;
+		}
+		else if(grade != null && grade.equals(2)){
+			return list.size() < 21 ? true :false;
+		}
+		else if(grade != null && grade.equals(3)){
+			return list.size() < 31 ? true :false;
+		}
+		return false;
+	}
+	//自画像保存
+	public void insertSelfPortrait(int userId) {
+		SelfPortrait self = new SelfPortrait();
+		self.setUserId(userId);
+		self.setType("selfPortrait");
+		self.setIsRead(0);
+		self.setIsDelete(false);
+		self.setCreateTime(new Date());
+		self.setUpdateTime(new Date());
+		insert(self);
+	}
+}

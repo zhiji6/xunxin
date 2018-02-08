@@ -1,0 +1,80 @@
+package com.xunxin.service.app.circle;
+
+
+import java.util.ArrayList;
+import java.util.List;
+
+import org.apache.log4j.Logger;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.domain.Sort.Direction;
+import org.springframework.data.domain.Sort.Order;
+import org.springframework.data.mongodb.core.query.Criteria;
+import org.springframework.data.mongodb.core.query.Query;
+import org.springframework.data.mongodb.core.query.Update;
+import org.springframework.stereotype.Repository;
+
+import com.xunxin.dao.impl.CircleCommentRecordDaoImpl;
+import com.xunxin.service.app.EmpathyCircleService;
+import com.xunxin.service.app.UserCirclePhotoService;
+import com.xunxin.vo.circle.CircleCommentRecord;
+import com.xunxin.vo.circle.EmpathyCircle;
+import com.xunxin.vo.circle.UserCirclePhoto;
+
+@Repository
+public class CircleCommentRecordService extends CircleCommentRecordDaoImpl{
+
+	private static final Logger logger = Logger.getLogger(CircleCommentRecordService.class);
+
+	@Autowired
+	private EmpathyCircleService empathyCircleService;
+	@Autowired
+	private UserCirclePhotoService userCirclePhotoService;
+	//查询新消息的数量
+	public Integer findNews(Integer userId) {
+		Query query = queryModel(userId);
+		Integer integer = findCountByQuery(query);
+		return integer;
+	}
+	//查询消息列表
+	public List<CircleCommentRecord> findNewsList(Integer userId) {
+		Query query = queryModel(userId);
+		List<CircleCommentRecord> list = find(query);
+		readCircleMessage(query);
+		for (CircleCommentRecord circleCommentRecord : list) {
+			EmpathyCircle empathyCircle = empathyCircleService.findOneById(circleCommentRecord.getEmpathyCircleId());
+			if(empathyCircle.getContent() != null && empathyCircle.getContent().length()>0){
+				circleCommentRecord.setContent(empathyCircle.getContent());
+			}
+			List<UserCirclePhoto> photos = userCirclePhotoService.findById(empathyCircle.getId());
+			if(photos != null && photos.size() >0 ){
+				circleCommentRecord.setPhoto(photos.get(0).getUrl());
+			}
+		}
+		return list;
+	}
+	//新消息查询model
+	public Query queryModel(Integer userId){
+		List<String> ids = empathyCircleService.findcircleIds(userId);
+		Query query = new Query();
+		query.addCriteria(Criteria.where("isDelete").is(false));
+		query.addCriteria(Criteria.where("empathyCircleId").in(ids));
+		query.addCriteria(Criteria.where("isRead").is(1));
+		query.with(new Sort(new Order(Direction.DESC, "createTime")));
+		return query;
+	}
+	//共情圈消息阅读
+	public void findNewsRead(String id) {
+		Query query = new Query();
+		query.addCriteria(Criteria.where("id").is(id));
+		Update update = Update.update("isRead", 0);
+		updateAllByQuery(query, update);
+	}
+	//共情圈消息清零
+	public void readCircleMessage(Query query) {
+		Update update = Update.update("isRead", 0);
+		updateAllByQuery(query, update);
+	}
+
+}
+

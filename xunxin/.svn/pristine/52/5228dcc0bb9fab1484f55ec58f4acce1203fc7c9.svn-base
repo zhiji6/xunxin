@@ -1,0 +1,22 @@
+package com.xunxin.controller.app.quartz;
+
+import org.quartz.Job;
+import org.quartz.JobExecutionContext;
+import org.quartz.JobExecutionException;
+import org.springframework.beans.factory.annotation.Autowired;
+
+import com.xunxin.service.app.user.UserOnlineRecordService;
+
+
+public class UserLevelJob implements Job{
+
+
+	@Autowired
+	private UserOnlineRecordService userOnlineRecordService;
+
+	@Override
+	public void execute(JobExecutionContext context) throws JobExecutionException {
+		userOnlineRecordService.queryAverageOnlineLength();
+	}
+
+}

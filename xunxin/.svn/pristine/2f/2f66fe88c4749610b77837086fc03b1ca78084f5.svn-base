@@ -1,0 +1,34 @@
+package com.xunxin.dao.im;
+
+import com.xunxin.vo.im.UserMatch;
+import com.xunxin.vo.im.UserMatchExample;
+import java.util.List;
+import org.apache.ibatis.annotations.Param;
+
+public interface UserMatchMapper {
+    int countByExample(UserMatchExample example);
+
+    int deleteByExample(UserMatchExample example);
+
+    int deleteByPrimaryKey(Integer id);
+
+    int insert(UserMatch record);
+
+    int insertSelective(UserMatch record);
+
+    List<UserMatch> selectByExample(UserMatchExample example);
+
+    UserMatch selectByPrimaryKey(Integer id);
+
+    int updateByExampleSelective(@Param("record") UserMatch record, @Param("example") UserMatchExample example);
+
+    int updateByExample(@Param("record") UserMatch record, @Param("example") UserMatchExample example);
+
+    int updateByPrimaryKeySelective(UserMatch record);
+
+    int updateByPrimaryKey(UserMatch record);
+
+	List<UserMatch> findMatchsByUserId(Integer userId);
+	//阅读匹配消息
+	void updateByMatchRead(Integer matchId);
+}

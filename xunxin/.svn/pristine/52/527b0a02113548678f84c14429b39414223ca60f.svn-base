@@ -1,0 +1,343 @@
+package com.xunxin.web.api.bean;
+
+/**
+ * Copyright © 2017 noseparte(Libra) © Like the wind, like rain
+ * @Author Noseparte
+ * @Compile 2017年10月2日 -- 上午1:25:06
+ * @Version 1.0
+ * @Description APP端 RouterBus 接口总线
+ */
+public class Router {
+
+	public static final String PATH = "/app-api";
+	
+	public static final String LOGIN = "/login";
+	public static final String LOGOUT = "/logout";
+	
+	public static final String MATCH_ONCE = "/match_once";		//匹配一下
+	public static final String ID_GENERATOR = "/ID_Generator";	//系统ID生成器
+	
+	public static final String OPEN_LOGIN = "/open_login";	//第三方登录
+	public static final String BIND_OPEN_ACCOUNT = "/bind_open_account";	//绑定第三方账号
+	public static final String BIND_USER_PHONE = "/bind_user_phone";	//手机号绑定
+	
+	public static final String QUERY_MATCH_MESSAGE = "/query_match_message";	//获取匹配信息
+	
+	
+	//用户
+	public class User {
+		public static final String PATH = "/user";
+		
+		public static final String REGISTER = "/register";	//注册
+		
+		public static final String VERIFY_CODE = "/verify_code";	//验证验证码
+		public static final String UPDATE_PASSWORD = "/update_password";	//修改密码
+		public static final String FORGET_PASSWORD = "/forget_password";	//忘记密码
+		
+		public static final String INFO_COMPLETE_DEGREE = "/info_complete_degree";	//资料完善程度
+		public static final String DEGREE_OF_COMPLETION = "/degree_of_completion";	//认证程度	
+		public static final String COMPLETE_BASICS_INFORMATION = "/complete_basics_information";	//完善基本资料
+		public static final String GET_USER_BASIC_INFORMATION = "/get_user_basic_information";		//获取基本资料
+		public static final String COMPLETE_PARTICULAR_INFORMATION = "/complete_particular_information";	//完善详细资料
+		public static final String EDIT_USER_INFORMATION = "/edit_user_information";	//编辑用户资料
+		
+		public static final String COMPLETE_ALBUM_INFORMATION = "/complete_album_information";	//相册
+		public static final String DELETE_ALBUM_INFORMATION = "/delete_album_information";	//删除照片
+
+		public static final String GET_SELF_PORTRAIT = "/get_self_portrait";	//获取用户自画像
+		public static final String MY_DETAIL_INFO = "/my_detail_info";	//我的页面信息
+		public static final String MY_INFOMATION = "/my_infomation";	//我的资料
+		public static final String EDIT_SELF_PORTRAIT = "/edit_self_portrait";	//编辑自画像
+		
+		public static final String USER_DELETE_DYNAMIC = "/user_delete_dynamic";	//用户删除动态
+		public static final String WATCH_USER_DYNAMIC_LIST = "/watch_user_dynamic_list";	//查看用户动态列表
+		public static final String USER_DYNAMIC_THUMB = "/user_dynamic_thumb";	//用户动态点赞
+		public static final String USER_CANCEL_DYNAMIC_THUMB = "/user_cancel_dynamic_thumb";	//用户动态取消点赞
+		
+		public static final String USER_EXP = "/user_exp";	        //我的积分
+		public static final String USER_EXP_LIST = "/user_exp_list";	        //用户积分明细
+		
+		public static final String USER_QUESTION_LIST = "/user_question_list";	//我的Q&A
+		public static final String USER_PARTICIPATE_QUESTION_LIST = "/user_participate_question_list";	//我参与的Q&A
+		public static final String USER_ISSUE_QUESTION_LIST = "/user_issue_question_list";	//我发布的Q&A
+		public static final String USER_COLLECT_QUESTION_LIST = "/user_collect_question_list";	//我收藏的Q&A
+		public static final String USER_DELETE_COLLECT_QUESTION_LIST = "/user_delete_collect_question_list";	//删除我收藏的Q&A
+		public static final String USER_PUBLISH_COLLECT_QUESTION = "/user_delete_publish_question";	//删除我发布的Q&A
+		public static final String USER_ISSUE_QUESTION_DETAIL = "/user_issue_question_detail";	//我发布的Q&A详情
+		public static final String USER_UPDATE_ISSUE_QUESTION = "/user_update_issue_question";	//我修改的发布Q&A
+	}
+	
+	//用户
+	public class Personal {
+		public static final String PATH = "/personal";
+		
+		public static final String IS_AUTHENTICATION = "/is_authentication";	//手机认证
+		public static final String PHONE_AUTHENTICATION = "/phone_authentication";	//手机认证
+		public static final String EDUCATION_AUTHENTICATION = "/education_authentication";	//学历认证
+		public static final String MAIL_AUTHENTICATION = "/mail_authentication";	//邮箱认证
+		public static final String CERTIFICATION_AUTHENTICATION = "/certification_authentication";	//实名认证
+		public static final String PROFESSION_AUTHENTICATION = "/profession_authentication";	//职业认证
+		public static final String SESAME_AUTHENTICATION = "/sesame_authentication";	//芝麻分认证
+		public static final String PERSONAL_AUTHENTICATION = "/personal_authentication";	//我的认证信息
+		public static final String PERSONAL_AUTHENTICATION_DETAIL = "/personal_authentication_detail";	//我的认证信息
+	}
+	
+	//用户设置模块
+	public class Option {
+		public static final String PATH = "/option";
+		
+		public static final String SETUP_PASSWORD = "/setup_password";	//设置密码
+		public static final String RESET_PASSWORD = "/reset_password";	//重置密码
+		public static final String USER_FEEDBACK = "/user_feedback";	//用户反馈
+		public static final String GET_BLOCK_LIST = "/get_block_list";	//获取屏蔽人列表
+		public static final String USER_ACCOUNT_SETUP = "/user_account_setup";	//用户账号设置
+		public static final String ONLINE_COUNT_TIMES = "/online_count_times";	//获取用户在线时长
+		
+		public static final String USER_SIGN = "/user_sign";	//用户签到
+		
+		public static final String USER_WELFARE = "/user_Welfare";	//用户福利
+		public static final String SHARE_SOFTWARE = "/share_software";	//分享软件
+		public static final String INFORMATION_TO_EMPTY = "/Information_to_empty";	//资料清空
+		public static final String SHUT_DOWN = "/shut_down";	//彻底关闭
+		
+	}
+	
+	//公共SDK API
+	public class Common {
+		public static final String PATH = "/util";
+		
+		public static final String SEND_SMS = "/send_sms";	//注册短信通知
+		public static final String SEND_FORGOT_SMS = "/send_forgot_message";	//用户找回密码验证接口
+	}
+	
+	//环信SDK API
+	public class Easemob {
+		public static final String PATH = "/easemob";	
+		
+		/************** 	用户体系集成 	   ****************/
+		public static final String USERS = "/users";	//环信用户
+		public static final String DELETE_EASEMOB_USER = "/delete_easemob_user";	//删除 IM 用户[单个]
+		public static final String GET_EASEMOB_USER = "/get_easemob_user";	//获取 IM 用户[单个]
+		public static final String UPDATE_USER_NICKNAME = "/update_user_nickname";	//修改 IM 用户昵称
+		
+		public static final String CHAT_MESSAGES = "/chat_messages";	//聊天记录		
+		public static final String CHAT_FILES = "/chat_files";	//文件上传下载
+		public static final String MESSAGES = "/messages";		//发送消息
+		public static final String CHAT_GROUPS = "/chat_groups";	//群组管理
+		public static final String CHAT_ROOMS = "/chat_rooms";		//聊天室管理
+		
+		public static final String GET_TOKEN = "/get_token";
+		public static final String REGISTER_SINGLE = "/register_single";
+	}
+	
+	
+	//搜索中心
+	public class Search {
+		public static final String PATH = "/search";
+		
+		
+	}
+
+	//Q&A管理中心
+	public class QA {
+		public static final String PATH = "/qa";
+		
+		public static final String QA_TOPIC_DETAIL = "/qa_topic_detail";	//获取Q&A话题详情
+		public static final String PUBLISH_QA_BY_USER = "/publish_QA_by_user";	//用户编辑Q&A
+		public static final String USER_ANSWER_QUESTION = "/user_answer_question";	//用户答题
+		public static final String USER_ATTENTION_QUESTION = "/user_attention_question";	//用户关注Q&A发布人
+		public static final String USER_CANCEL_ATTENTION_QUESTION = "/user_cancel_attention_question";	//用户取消关注Q&A发布人
+		public static final String USER_COLLECTION_QUESTION = "/user_collection_question";	//用户收藏Q&A
+		public static final String USER_CANCEL_COLLECTION_QUESTION = "/user_cancel_collection_question";	//用户收藏Q&A
+		public static final String CHECK_QA_PROPORTION = "/check_qa_proportion";	//查看Q&A答题比例
+		public static final String GET_TITLE_BY_URL = "/get_title_by_url";		//获取链接摘要 
+		public static final String UPLOAD_QUESTION_PHOTO = "/upload_question_photo";		//QA上传图片(单张)
+		public static final String QA_HOT_TOPIC_LIST = "/qa_Hot_topic_list";		//Q&A热点话题列表
+		public static final String GET_ANSWER_LIST = "/get_answer_list";		//Q&A热点话题列表
+		public static final String GET_TAG_LIST = "/get_tag_list";		//Q&A标签列表
+	}
+	
+	
+	//Q&A板块管理中心
+	public class Section {
+		public static final String PATH = "/section";
+		
+		public static final String ADD_SECTION = "/add_section";	//新增&QA板块
+		public static final String GET_SECTION_LIST = "/get_section_list";	//获取&QA板块列表
+	}
+	
+	//用户评论
+	public class Comment {
+		public static final String PATH = "/comment";
+		
+		public static final String SAVE_COMMENT = "/save_comment";	//保存评论
+		public static final String QUERY_COMMENT_LIST = "/query_comment_list";	//查看问题评论列表
+		public static final String QUERY_REPLY_LIST = "/query_reply_list";	//查看评论的回复列表
+		public static final String QUERY_COMMUNICATION = "/query_communication";	//查看双方的回复列表
+		public static final String TO_EXAMINE = "/to_examine";	//审核
+		public static final String SAVE_DEVICE_TOKEN = "/save_device_token";	//保存DeviceToken
+		public static final String TO_GIVE_UP = "/to_give_up";	//点赞
+		
+		public static final String TO_COMMENT_TOP = "/to_comment_top";	//置顶
+	}
+		
+	//审核
+	public class Audit {
+		public static final String PATH = "/audit";
+		
+		public static final String  QUERY_AUDIT_QUALIFICATION = "/query_audit_qualification";	//查询审核资格
+		public static final String  QUERY_AUDIT_XOLUNTEER_ADOPT = "/query_audit_volunteer_adopt";	//志愿者审核
+	
+		public static final String QUERY_CAUSE_OF_FAILURE = "/query_cause_of_failure";//审核失败的原因
+	
+	}
+	
+	//抛绣球
+	public class Hydrangea {
+		public static final String PATH = "/hydrangea";
+		
+		public static final String  PICK_HYDRANGEA = "/pick_hydrangea";	//采笺
+		public static final String  THROW_HYDRANGEA_CUSTOM = "/throw_hydrangea_custom";	//投笺(自选)
+		public static final String  THROW_HYDRANGEA_RANDOM = "/throw_hydrangea_random";	//采笺(随机)
+	}
+
+
+
+	
+	
+	//转盘
+	public class Turnplate {
+		public static final String PATH = "/turnplate";
+	
+		public static final String  TOUCH_TURNPLATE = "/touch_turnplate";	//转盘游戏开奖结果(用户)
+		public static final String  TURNPLATE_AWARD_RECORD_LIST = "/turnplate_award_record_list";	//转盘游戏开奖结果(列表)
+		
+	}
+	public class Contacts {
+			
+			public static final String PATH = "/contacts";
+			
+			public static final String QUERY_SHIELDS = "/query_shields";	//查找屏蔽的人列表
+			
+			public static final String QUERY_REPORTS = "/query_reports";	//查找屏蔽的人列表
+			
+			public static final String SAVE_REPORT = "/save_report";	//保存举报的人
+			
+			public static final String SAVE_SHIELD = "/save_shield";	//保存屏蔽的人
+			
+			public static final String QUERY_CHAT_PERMISSIONS = "/query_chat_permissions";	//发送聊天和自发像权限
+			
+			public static final String SAVE_SINGLE_OPEN_REGISTRATION = "/save_single_open_registration";	//单个注册环信用户账号
+			
+			public static final String  QUERY_DICT= "/query_dict";	//查找字典列表
+			
+			public static final String  QUERY_FRIEND_INTERACTION= "/query_friend_interaction";	//查找好友互动标示
+			
+			public static final String  QUERY_MY_ATTENTIONS= "/query_my_attentions";	//查找我关注的人
+			
+			public static final String  QUERY_ATTENTIONS_ME= "/query_attentions_me";	//查找关注我的人
+			
+			public static final String  SAVE_ATTENTION= "/save_attention";	//保存或更新我关注的人
+			
+			
+			
+		}
+
+	
+	
+	//摇一摇
+	public class Shake {
+		public static final String PATH = "/shake";
+
+		
+		public static final String  SHAKE_IT_OFF = "/shake_it_off";	//用户摇一摇
+		public static final String  USER_MATCHED_SHAKE_OFF = "/user_matched_shake_off";	//用户摇一摇
+	}
+	
+	//曝光栏
+	public class Exposure {
+		public static final String PATH = "/exposure";
+		
+		public static final String  SHOW_EXPOSURE_LIST = "/show_exposure_list";	//获取曝光栏列表
+		public static final String  SHOW_EXPOSURE_DETAIL = "/show_exposure_detail";	//获取曝光记录详情
+		public static final String  THUMB_COMMENTED_EXPOSURE = "/thumb_commented_exposure";	//曝光记录评论点赞
+		public static final String  PUBILSH_EXPOSURE = "/publish_exposure";	//获取曝光栏列表
+		public static final String  COMMENTED_EXPOSURE_LIST = "/commented_exposure_list";	//曝光记录评论列表
+	}
+	
+	//排行榜
+	public class LeaderBoard {
+		public static final String PATH = "/board";
+		
+		public static final String  DAY_LEADER_BOARD = "/day_leader_board";			//日排行榜
+		public static final String  WEEK_LEADER_BOARD = "/week_leader_board";		//周排行榜
+		public static final String  MONTH_LEADER_BOARD = "/month_leader_board";		//月排行榜
+	}
+	
+	//交易中心
+	public class Payment {
+	    public static final String PATH = "/payment";
+	    
+	    public static final String  USER_ACCOUNT = "/user_account";			//我的钱包
+	    public static final String  USER_ACCOUNT_SETUP = "/user_account_setup";			//用户交易明细
+	}
+	
+		
+	//im聊天
+	public class Im {
+		
+		public static final String PATH = "/im";
+		
+		public static final String SAVE_LOCATION = "/save_location";	//保存或更新位置
+		
+		public static final String QUERY_FRIENDS = "/query_frinds";	//查找好友列表
+		
+		public static final String QUERY_MOMENT= "/query_moment";//此时此刻
+		
+		public static final String  QUERY_HEART_CONSONANCE= "/query_heart_consonance";	//心有灵犀
+		
+		public static final String  QUERY_USER_MATCHS= "/query_user_matchs";	//查询匹配列表
+		
+		public static final String  QUERY_MESSAGES= "/query_messages";	//消息列表
+		
+		public static final String READ_HRET = "/read_hert";	//阅读心有灵犀
+		
+		public static final String READ_INTERACTION = "/read_message";	//阅读官方和互动消息
+		
+		public static final String READ_INTERACTION_LIST = "/read_message_list";	//消息列表
+	}
+
+	//共情圈
+	public class Circle {
+		
+		public static final String PATH = "/circle";
+		
+		public static final String SAVE_CIRCLE = "/save_circle";	//保存共情圈
+		
+		public static final String SAVE_CIRCLE_COMMENT = "/save_circle_comment";	//保存评论
+		
+		public static final String DELETE_CIRCLE_COMMENT = "/delete_circle_comment";	//删除评论
+		
+		public static final String SAVE_GIVE_UP_CIRCLE = "/save_give_up_circle";	//点赞动态
+		
+		public static final String QUERY_MY_CIRCLE = "/query_my_circle";	//查看我的共情圈
+		
+		public static final String QUERY_CIRCLES = "/query_circles";	//查看共情圈列表
+		
+		public static final String QUERY_CIRCLE_PHOTO = "/query_cicle_photo";	//查看共情圈照片权限
+		
+		public static final String QUERY_CIRCLE_PHOTO_THROUGH = "/query_cicle_photo_through";	//查看共情圈穿越一下
+		
+		public static final String EMPATHY_CIRCLE_TO_EDIT = "/empathy_circle_to_edit";	//共情圈查看详情
+		
+		public static final String EMPATHY_CIRCLE_NEWS_LIST = "/empathy_circle_news_list";	//共情圈消息列表
+		
+		public static final String EMPATHY_CIRCLE_NEWS_READ = "/empathy_circle_news_read";	//共情圈消息阅读
+		
+		public static final String EMPATHY_CIRCLE_DELETE = "/empathy_circle_delete";	//共情圈删除
+		
+		public static final String EMPATHY_CIRCLE_NO_INTEREST = "/empathy_circle_no_interest";	//共情圈不敢兴趣
+		
+	}
+		
+}

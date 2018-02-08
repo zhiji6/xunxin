@@ -1,0 +1,225 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.xunxin.dao.im.IMRecordMapper" >
+  <resultMap id="BaseResultMap" type="com.xunxin.vo.im.IMRecord" >
+    <id column="msg_id" property="msgId" jdbcType="VARCHAR" />
+    <result column="create_date" property="createDate" jdbcType="TIMESTAMP" />
+    <result column="direction" property="direction" jdbcType="VARCHAR" />
+    <result column="to_user" property="toUser" jdbcType="VARCHAR" />
+    <result column="from_user" property="fromUser" jdbcType="VARCHAR" />
+    <result column="chat_type" property="chatType" jdbcType="VARCHAR" />
+    <result column="payload" property="payload" jdbcType="VARCHAR" />
+  </resultMap>
+    <resultMap id="BaseResultTimeMap" type="HashMap" >
+    <id column="minTime" property="minTime" jdbcType="TIMESTAMP" />
+    <id column="maxTime" property="maxTime" jdbcType="TIMESTAMP" />
+  </resultMap>
+  <sql id="Base_Column_List" >
+    msg_id, create_date, direction, to_user, from_user, chat_type, payload
+  </sql>
+  <select id="selectByPrimaryKey" resultMap="BaseResultMap" parameterType="java.lang.String" >
+    select 
+    <include refid="Base_Column_List" />
+    from xunxin_user_im_record
+    where msg_id = #{msgId,jdbcType=VARCHAR}
+  </select>
+  <delete id="deleteByPrimaryKey" parameterType="java.lang.String" >
+    delete from xunxin_user_im_record
+    where msg_id = #{msgId,jdbcType=VARCHAR}
+  </delete>
+  <insert id="insert" parameterType="com.xunxin.vo.im.IMRecord" >
+    insert into xunxin_user_im_record (msg_id, create_date, direction, 
+      to_user, from_user, chat_type, 
+      payload)
+    values (#{msgId,jdbcType=VARCHAR}, #{createDate,jdbcType=TIMESTAMP}, #{direction,jdbcType=VARCHAR}, 
+      #{toUser,jdbcType=VARCHAR}, #{fromUser,jdbcType=VARCHAR}, #{chatType,jdbcType=VARCHAR}, 
+      #{payload,jdbcType=VARCHAR})
+  </insert>
+  <insert id="insertSelective" parameterType="com.xunxin.vo.im.IMRecord" >
+    insert into xunxin_user_im_record
+    <trim prefix="(" suffix=")" suffixOverrides="," >
+      <if test="msgId != null" >
+        msg_id,
+      </if>
+      <if test="timestamp != null" >
+        create_date,
+      </if>
+      <if test="direction != null" >
+        direction,
+      </if>
+      <if test="to != null" >
+        to_user,
+      </if>
+      <if test="from != null" >
+        from_user,
+      </if>
+      <if test="chatType != null" >
+        chat_type,
+      </if>
+      <if test="payload != null" >
+        payload,
+      </if>
+    </trim>
+    <trim prefix="values (" suffix=")" suffixOverrides="," >
+      <if test="msgId != null" >
+        #{msgId,jdbcType=VARCHAR},
+      </if>
+      <if test="timestamp != null" >
+        #{createDate,jdbcType=TIMESTAMP},
+      </if>
+      <if test="direction != null" >
+        #{direction,jdbcType=VARCHAR},
+      </if>
+      <if test="to != null" >
+        #{toUser,jdbcType=VARCHAR},
+      </if>
+      <if test="from != null" >
+        #{fromUser,jdbcType=VARCHAR},
+      </if>
+      <if test="chatType != null" >
+        #{chatType,jdbcType=VARCHAR},
+      </if>
+      <if test="payload != null" >
+        #{payload,jdbcType=VARCHAR},
+      </if>
+    </trim>
+  </insert>
+  <update id="updateByPrimaryKeySelective" parameterType="com.xunxin.vo.im.IMRecord" >
+    update xunxin_user_im_record
+    <set >
+      <if test="timestamp != null" >
+        create_date = #{createDate,jdbcType=TIMESTAMP},
+      </if>
+      <if test="direction != null" >
+        direction = #{direction,jdbcType=VARCHAR},
+      </if>
+      <if test="to != null" >
+        to_user = #{toUser,jdbcType=VARCHAR},
+      </if>
+      <if test="from != null" >
+        from_user = #{fromUser,jdbcType=VARCHAR},
+      </if>
+      <if test="chatType != null" >
+        chat_type = #{chatType,jdbcType=VARCHAR},
+      </if>
+      <if test="payload != null" >
+        payload = #{payload,jdbcType=VARCHAR},
+      </if>
+    </set>
+    where msg_id = #{msgId,jdbcType=VARCHAR}
+  </update>
+  <update id="updateByPrimaryKey" parameterType="com.xunxin.vo.im.IMRecord" >
+    update xunxin_user_im_record
+    set create_date = #{createDate,jdbcType=TIMESTAMP},
+      direction = #{direction,jdbcType=VARCHAR},
+      to_user = #{toUser,jdbcType=VARCHAR},
+      from_user = #{fromUser,jdbcType=VARCHAR},
+      chat_type = #{chatType,jdbcType=VARCHAR},
+      payload = #{payload,jdbcType=VARCHAR}
+    where msg_id = #{msgId,jdbcType=VARCHAR}
+  </update>
+  
+   <select id="queryImMysendsids" resultType="java.lang.Integer" parameterType="java.lang.Integer" >
+		   SELECT
+			e.uid
+		FROM
+			xunxin_user e
+		WHERE
+			e.phone IN (
+				SELECT
+				distinct
+					d.to_user
+				FROM
+					xunxin_user_im_record d
+				LEFT JOIN xunxin_user u ON u.phone = d.from_user
+				WHERE
+					u.uid =  #{userId,jdbcType=VARCHAR}
+			)
+  </select>
+  
+   <select id="queryImSendsMyIds" resultType="java.lang.Integer" parameterType="java.lang.Integer" >
+   		   SELECT
+			e.uid
+		FROM
+			xunxin_user e
+		WHERE
+			e.phone IN (
+				 select 
+		    distinct
+		    d.from_user
+		    from xunxin_user_im_record d
+		    left join xunxin_user u
+		    on u.phone = d.to_user
+		    where u.uid = #{userId,jdbcType=VARCHAR}
+			)
+
+  </select>
+     <select id="continuousChat" resultType="java.lang.Integer" parameterType="java.util.Map" >
+   		SELECT
+					count(1)
+				FROM
+					xunxin_user_im_record r
+				WHERE
+					to_user = (
+						SELECT
+							u.phone
+						FROM
+							xunxin_user u
+						WHERE
+							u.uid = #{userId,jdbcType=VARCHAR}
+					)
+				AND from_user = (
+					SELECT
+						u.phone
+					FROM
+						xunxin_user u
+					WHERE
+						u.uid = #{friendId,jdbcType=VARCHAR}
+				)
+				AND r.create_date BETWEEN #{monDate,jdbcType=TIMESTAMP}
+				AND #{maxDate,jdbcType=TIMESTAMP}
+
+  </select>
+  <select id="findNickNameByUserId" resultType="java.lang.String" parameterType="java.lang.String" >
+		SELECT DISTINCT
+				u.nickName
+			FROM
+				xunxin_user_im_record r
+			LEFT JOIN xunxin_user u ON u.phone = r.from_user
+			WHERE
+				#{phone,jdbcType=VARCHAR}
+  </select>
+  <select id="findPageList" parameterType="com.xunxin.vo.im.IMRecord" resultType="com.xunxin.vo.im.IMRecord">
+			SELECT
+				a.msg_id,
+				a.chat_type,
+				a.direction,
+				u.nickName AS fromUserNickName,
+				s.nickName AS toUserNickName,
+				a.from_user,
+				a.to_user,
+				a.create_date,
+				a.payload
+			FROM
+				xunxin_user_im_record a
+			LEFT JOIN xunxin_user u ON u.phone = a.from_user
+			LEFT JOIN xunxin_user s ON s.phone = a.to_user
+			<where>
+				1=1
+			<if test="msgId != null and msgId != ''">
+				AND a.msg_id = #{msgId}
+			</if>
+			<if test="chatType != null and chatType != ''">
+				AND a.chat_type = #{chatType}
+			</if>
+			<if test="toUser != null and toUser != ''">
+				AND a.from_user = #{fromUser}
+			</if>
+			<if test="createDate != null and endYear != null">
+				AND a.createDate BETWEEN #{beginYear} AND #{endYear}
+			</if>
+			</where>
+			ORDER BY
+				a.create_date DESC
+	</select>
+</mapper>

@@ -1,0 +1,474 @@
+package com.xunxin.service.app;
+
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.Iterator;
+import java.util.List;
+
+import org.apache.log4j.Logger;
+import org.bson.Document;
+import org.junit.Test;
+import org.mongodb.framework.util.Pagination;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.domain.Sort.Direction;
+import org.springframework.data.domain.Sort.Order;
+import org.springframework.data.mongodb.core.query.Criteria;
+import org.springframework.data.mongodb.core.query.Query;
+import org.springframework.data.mongodb.core.query.Update;
+import org.springframework.stereotype.Repository;
+
+import com.github.pagehelper.PageHelper;
+import com.mongodb.BasicDBObject;
+import com.mongodb.client.FindIterable;
+import com.mongodb.client.MongoCollection;
+import com.mongodb.client.MongoDatabase;
+import com.xunxin.constants.ExpConstants;
+import com.xunxin.controller.app.circle.EmpathyCircleController;
+import com.xunxin.dao.app.user.AppUserDao;
+import com.xunxin.dao.circle.EmpathyCircleDao;
+import com.xunxin.dao.im.HeartConsonancMapper;
+import com.xunxin.dao.impl.EmpathyCircleDaoImpl;
+import com.xunxin.service.ArecordService;
+import com.xunxin.service.app.circle.CircleCommentService;
+import com.xunxin.service.app.circle.CircleLikeService;
+import com.xunxin.service.app.user.MongoDBUtil;
+import com.xunxin.service.app.user.UserAmountChangeRecordService;
+import com.xunxin.service.app.user.UserExpChangeRecordService;
+import com.xunxin.util.page.PaginationContext;
+import com.xunxin.vo.circle.CircleComment;
+import com.xunxin.vo.circle.CircleCommentRecord;
+import com.xunxin.vo.circle.CircleLike;
+import com.xunxin.vo.circle.EmpathyCircle;
+import com.xunxin.vo.im.HeartConsonanc;
+import com.xunxin.vo.im.SelfPortrait;
+import com.xunxin.vo.qa.CommentVO;
+import com.xunxin.vo.qa.GiveUpVo;
+import com.xunxin.vo.qa.QuestionVO;
+import com.xunxin.vo.sys.Log;
+import com.xunxin.vo.user.UserEntity;
+
+@Repository
+public class EmpathyCircleService extends EmpathyCircleDaoImpl{
+
+	private static final Logger logger = Logger.getLogger(EmpathyCircleService.class);
+	
+	@Autowired
+	private AppUserService appUserService;
+	@Autowired
+	private HeartConsonancMapper heartConsonancMapper;
+	@Autowired
+	private CircleCommentService circleCommentService;
+	@Autowired
+	private SelfPortraitService selfPortraitService;
+	@Autowired
+	private UserFriendsService userFriendsService;
+	@Autowired
+	private ArecordService arecordService;
+	@Autowired
+	private ArecordTestService arecordTestService;
+	@Autowired
+	private UserCirclePhotoService userCirclePhotoService;
+	@Autowired
+	private CircleLikeService circleLikeService;
+	@Autowired
+	private UserExpChangeRecordService userExpChangeRecordService;
+	@Autowired
+	private UserAmountChangeRecordService userAmountChangeRecord;
+	@Autowired
+	private UserReportsService userReportsService;
+	public void updateLikeNum(String empathyCircleId, Integer giveUp) {
+		Query query = new Query();
+		query.addCriteria(Criteria.where("id").is(empathyCircleId));
+		query.addCriteria(Criteria.where("isDelete").is(false));
+		EmpathyCircle findOneByQuery = findOneByQuery(query);
+		if(findOneByQuery != null && giveUp != null && giveUp.equals(0) && findOneByQuery.getLikeNum()!=null){
+			Update update = Update.update("likeNum", findOneByQuery.getLikeNum()+1);
+			update.set("updateDate", new Date());
+			updateFirst(query, update);
+		}
+		else if(findOneByQuery!= null && giveUp != null && giveUp.equals(1) && findOneByQuery.getLikeNum()!=null){
+			if(findOneByQuery.getLikeNum().intValue()<1){
+				Update update = Update.update("likeNum", 0);
+				update.set("updateDate", new Date());
+				updateFirst(query, update);
+			}else{
+				Update update = Update.update("likeNum", findOneByQuery.getLikeNum()-1);
+				update.set("updateDate", new Date());
+				updateFirst(query, update);
+			}
+			
+		}else{
+			Update update = Update.update("likeNum", 0);
+			update.set("updateDate", new Date());
+			updateFirst(query, update);
+		}
+		
+		
+	}
+
+	public Pagination<EmpathyCircle> queryMyCircle(Integer userId,Integer pageNo,Integer pageSize) {
+		UserEntity userEntry = appUserService.findById(userId);
+		if(userEntry== null){
+			return new Pagination<EmpathyCircle>();
+		}
+		Query query = new Query();
+		query.addCriteria(Criteria.where("isDelete").is(false));
+		query.addCriteria(Criteria.where("userId").is(userId));
+		query.with(new Sort(new Order(Direction.DESC, "createTime")));
+		Pagination<EmpathyCircle> pagination=this.findPaginationByQuery(query, pageNo, pageSize);
+		pagination = circleDataFormat(pagination);
+		return pagination;
+//		if(pagination != null && pagination.getDatas() != null){
+//			for (EmpathyCircle empathyCircle : pagination.getDatas()) {
+//				Query queryReply = new Query();
+//				queryReply.addCriteria(Criteria.where("isDelete").is(false));
+//				queryReply.addCriteria(Criteria.where("empathyCircleId").is(empathyCircle.getId()));
+//				List<CircleComment> listComment = circleCommentService.find(queryReply);
+//				for (CircleComment circleComment : listComment) {
+//					String userName;
+//					String replyName;
+//					if(circleComment.getUserId() != null){
+//						userName = appUserService.findUserNameByUserId(circleComment.getUserId());
+//						circleComment.setNickName(userName);
+//					}
+//					 if(circleComment.getReplyUserId()!= null){
+//						replyName = appUserService.findUserNameByUserId(circleComment.getReplyUserId());
+//						circleComment.setReployName(replyName);
+//					 }
+//					
+//				}
+//				empathyCircle.setCircleComment(listComment);
+//				
+//				SimpleDateFormat sdf =   new SimpleDateFormat( " yyyy-MM-dd HH:mm:ss " );
+//				if(empathyCircle.getCreateTime() != null){
+//					empathyCircle.setTime(sdf.format(empathyCircle.getCreateTime()));
+//				}
+//				if(userEntry.getGender() != null){
+//					empathyCircle.setGender(userEntry.getGender());
+//				}
+//				if(userEntry.getNickName() != null){
+//					empathyCircle.setNickName(userEntry.getNickName());
+//				}
+//				if(userEntry.getSexualOrientation() != null){
+//					empathyCircle.setSexualOrientation(userEntry.getSexualOrientation());;
+//				}
+//			}
+//		}
+//		return pagination;
+	}
+
+	public Pagination<EmpathyCircle> queryCircles(Integer userId,Integer pageNo,Integer pageSize) {
+		List<HeartConsonanc> heartConsonanc = heartConsonancMapper.findHertConsonanceByUserId(userId);
+		List<Integer> list = new ArrayList<>();
+		for (HeartConsonanc hert : heartConsonanc) {
+			if(hert.getUserId()!= null){
+				list.add(hert.getConsonanceId());
+			}
+		}
+		List<EmpathyCircle> record =new ArrayList<EmpathyCircle>();
+		MongoDatabase mdb=MongoDBUtil.getDatabase();
+		MongoCollection<Document> document =mdb.getCollection("empathyCircle");
+		Document key =new Document();//指定只返回record字段信息  1表示需要显示，0表示不需要显示
+		key.append("_id", 1);
+		key.append("createTime", 1);
+		key.append("content", 1);
+		key.append("photos", 1);
+		key.append("userId", 1);
+		key.append("address", 1);
+		key.append("isVague", 1);
+		BasicDBObject query = new BasicDBObject();
+		query.put("userId", new BasicDBObject("$in", list));
+		BasicDBObject sort = new BasicDBObject();
+        sort.put("createTime",1);
+		FindIterable<Document> cursors = document.find(query).sort(sort).skip(pageNo).limit(pageSize).projection(key);
+		int count = 0;
+		FindIterable<Document> find = document.find(query);
+		for (Document  cursor : find) {
+			 count++;
+			}
+		for (Document cursor : cursors) {
+			EmpathyCircle circle = new EmpathyCircle();
+			ArrayList object = (ArrayList) cursor.get("photos");
+			if(object != null){
+//				circle.setPhotos((String[])object.toArray(new String[0]));
+			}
+			circle.setUserId(cursor.getInteger("userId"));
+			circle.setContent(cursor.getString("content"));
+			circle.setAddress(cursor.getString("address"));
+			circle.setIsVague(cursor.getInteger("isVague"));
+			circle.setId(cursor.get("_id").toString());
+			circle.setCreateTime(cursor.get("createTime", Date.class));
+			SimpleDateFormat sdf =   new SimpleDateFormat( " yyyy-MM-dd HH:mm:ss " );
+			if(circle.getCreateTime() != null){
+				circle.setTime(sdf.format(circle.getCreateTime()));
+			}
+			Query queryReply = new Query();
+			queryReply.addCriteria(Criteria.where("isDelete").is(false));
+			queryReply.addCriteria(Criteria.where("empathyCircleId").is(circle.getId()));
+			List<CircleComment> listComment = circleCommentService.find(queryReply);
+			for (CircleComment circleComment : listComment) {
+				String userName;
+				String replyName;
+				if(circleComment.getUserId() != null){
+					userName = appUserService.findUserNameByUserId(circleComment.getUserId());
+					circleComment.setNickName(userName);
+				}
+				 if(circleComment.getReplyUserId()!= null){
+					replyName = appUserService.findUserNameByUserId(circleComment.getReplyUserId());
+					circleComment.setReployName(replyName);
+				 }
+			}
+			circle.setCircleComment(listComment);
+			record.add(circle);
+		}
+		Pagination<EmpathyCircle> pagination=new Pagination<EmpathyCircle>();
+		pagination.setDatas(record);
+		pagination.setPageNo(pageNo);
+		pagination.setPageSize(pageSize);
+		pagination.setTotalCount(count);
+		return pagination;
+	}
+
+	//用户查看共情圈图片记录
+	public void insertSelfPortrait(Integer userId, String circleId) {
+		SelfPortrait self = new SelfPortrait();
+		self.setUserId(userId);
+		self.setType("circlePhoto");
+		self.setCircleId(circleId);
+		self.setIsRead(0);
+		self.setIsDelete(false);
+		self.setCreateTime(new Date());
+		self.setUpdateTime(new Date());
+		selfPortraitService.insert(self);
+		
+		
+	}
+	//查看共情圈权限
+	public Boolean queryJurisdiction(Integer userId) {
+		Integer grade = appUserService.findUserGradeByUserId(userId);
+		if(grade != null && grade.equals(0)){
+			return false;
+		}
+		Query query = new Query();
+		query.addCriteria(Criteria.where("isDelete").is(false));
+		query.addCriteria(Criteria.where("type").is("circlePhoto"));
+		query.addCriteria(Criteria.where("userId").is(userId));
+		Date date = userFriendsService.getMorningHours(new Date());
+		query.addCriteria(Criteria.where("createTime").gt(date));
+		List<SelfPortrait> list = selfPortraitService.find(query);
+		if(grade != null && grade.equals(1)){
+			return list.size() < 11 ? true :false;
+		}
+		else if(grade != null && grade.equals(2)){
+			return list.size() < 21 ? true :false;
+		}
+		else if(grade != null && grade.equals(3)){
+			return list.size() < 31 ? true :false;
+		}
+		return false;
+	}
+	//按兴趣查看共情圈
+	public Pagination<EmpathyCircle> queryCirclesPlanB(Integer userId, Integer pageNo, Integer pageSize) {
+		//去除不感兴趣的人
+//		List<Integer> users = removeNotInterested(userId);
+		Query query = new Query();
+		query.addCriteria(Criteria.where("isDelete").is(false));
+//		query.addCriteria(Criteria.where("userId").in(users));
+		query.with(new Sort(new Order(Direction.DESC, "createTime")));
+		Pagination<EmpathyCircle> pagination=this.findPaginationByQuery(query, pageNo, pageSize);
+		pagination = circleDataFormat(pagination);
+		for (EmpathyCircle empathyCircle : pagination.getDatas()) {
+			//是否点赞
+				Query queryLike = new Query();
+				queryLike.addCriteria(Criteria.where("empathyCircleId").is(empathyCircle.getId()));
+				queryLike.addCriteria(Criteria.where("isDelete").is(false));
+					queryLike.addCriteria(Criteria.where("userId").is(userId));
+					queryLike.with(new Sort(new Order(Direction.DESC, "createTime")));
+					CircleLike giveup = circleLikeService.findOneByQuery(queryLike);
+					if(giveup != null && giveup.getGiveUP() != null){
+						empathyCircle.setGiveUp(giveup.getGiveUP());
+					}else{
+						empathyCircle.setGiveUp(1);
+					}
+			//是否照片付费
+				if(empathyCircle.getIsVague().equals(1)){
+					setVague(empathyCircle,userId);
+				}
+		}
+		return pagination;
+	}
+	//去除不感兴趣的人
+	private List<Integer> removeNotInterested(Integer userId) {
+		List<Integer> list = arecordService.findUsersByModuleHeat(userId,3);
+		logger.info("感兴趣的人"+list);
+		List<Integer> notList = userReportsService.findNotInterest(userId);
+		logger.info("屏蔽的人"+notList);
+		list.removeAll(notList);
+		return list;
+	}
+
+	//是否付费
+	private void setVague(EmpathyCircle empathyCircle, Integer userId) {
+		Query query = new Query();
+		query.addCriteria(Criteria.where("isDelete").is(false));
+		query.addCriteria(Criteria.where("type").is("circlePhoto"));
+		query.addCriteria(Criteria.where("userId").is(userId));
+		query.addCriteria(Criteria.where("circleId").is(empathyCircle.getId()));
+		List<SelfPortrait> list = selfPortraitService.find(query);
+		if(list != null && list.size()>0){
+			empathyCircle.setIsVague(0);
+		}
+		
+	}
+
+	//共情圈数据格式化
+	private Pagination<EmpathyCircle> circleDataFormat(Pagination<EmpathyCircle> pagination) {
+		if(pagination != null && pagination.getDatas() != null){
+			for (EmpathyCircle empathyCircle : pagination.getDatas()) {
+				UserEntity userEntry = appUserService.findById(empathyCircle.getUserId());
+				Query queryReply = new Query();
+				queryReply.addCriteria(Criteria.where("isDelete").is(false));
+				queryReply.addCriteria(Criteria.where("empathyCircleId").is(empathyCircle.getId()));
+				List<CircleComment> listComment = circleCommentService.find(queryReply);
+				for (CircleComment circleComment : listComment) {
+					String userName;
+					String replyName;
+					if(circleComment.getUserId() != null){
+						userName = appUserService.findUserNameByUserId(circleComment.getUserId());
+						circleComment.setNickName(userName);
+					}
+					 if(circleComment.getReplyUserId()!= null){
+						replyName = appUserService.findUserNameByUserId(circleComment.getReplyUserId());
+						circleComment.setReployName(replyName);
+					 }
+				}
+				empathyCircle.setCircleComment(listComment);
+				
+				SimpleDateFormat sdf =   new SimpleDateFormat( " yyyy-MM-dd HH:mm:ss " );
+				if(empathyCircle.getCreateTime() != null){
+					empathyCircle.setTime(sdf.format(empathyCircle.getCreateTime()));
+				}
+				if(userEntry!=null && userEntry.getGender() != null){
+					empathyCircle.setGender(userEntry.getGender());
+				}
+				if(userEntry!=null && userEntry.getNickName() != null){
+					empathyCircle.setNickName(userEntry.getNickName());
+				}
+				if(userEntry!=null && userEntry.getSexualOrientation() != null){
+					empathyCircle.setSexualOrientation(userEntry.getSexualOrientation());;
+				}
+				empathyCircle.setPhotos(userCirclePhotoService.findById(empathyCircle.getId()));
+			}
+		}
+		return pagination;
+	}
+	//后台管理共情圈列表
+	public Pagination<EmpathyCircle> findPageList(EmpathyCircle empathyCircle) {
+		PageHelper.startPage(PaginationContext.getPageNum(), PaginationContext.getPageSize());
+		Query query = new Query();
+		query.addCriteria(Criteria.where("isDelete").is(false));
+		query.with(new Sort(new Order(Direction.DESC, "createTime")));
+		Pagination<EmpathyCircle> pagination=findPaginationByQuery(query, PaginationContext.getPageNum(),PaginationContext.getPageSize());
+		pagination = circleDataFormat(pagination);
+		return pagination;
+	}
+	//删除共情圈
+	public void delete(String id) {
+		Query query = new Query();
+		query.addCriteria(Criteria.where("id").is(id));
+		EmpathyCircle oneById = findOneById(id);
+		Update update = Update.update("isDelete", true);
+		updateFirst(query, update);
+		
+	}
+	//查询共情圈
+	public EmpathyCircle findEmpathyOneById(String id) {
+		EmpathyCircle empathy = findOneById(id);
+		if(empathy != null && empathy.getUserId() != null){
+			String userName = appUserService.findUserNameByUserId(empathy.getUserId());
+			empathy.setNickName(userName);
+		}
+		empathy.setPhotos(userCirclePhotoService.findById(empathy.getId()));
+		Query query = new Query();
+		query.addCriteria(Criteria.where("empathyCircleId").is(id));
+		query.addCriteria(Criteria.where("isDelete").is(false));
+		List<CircleComment> list = circleCommentService.find(query);
+		for (CircleComment circleComment : list) {
+			if(circleComment != null && circleComment.getUserId() != null){
+				String userName = appUserService.findUserNameByUserId(circleComment.getUserId());
+				circleComment.setNickName(userName);
+			}
+			if(circleComment != null && circleComment.getReplyUserId() != null){
+				String userName = appUserService.findUserNameByUserId(circleComment.getUserId());
+				circleComment.setReployName(userName);
+			}
+		}
+		empathy.setCircleComment(list);
+		return empathy;
+	}
+
+	//穿越一下
+	public Pagination<EmpathyCircle> queryCirclesThrough(Integer userId, Integer pageNo, Integer pageSize) {
+		Query query = new Query();
+		query.addCriteria(Criteria.where("isDelete").is(false));
+		query.with(new Sort(new Order(Direction.DESC, "createTime")));
+		Pagination<EmpathyCircle> pagination=this.findPaginationByQuery(query, pageNo, pageSize);
+		pagination = circleDataFormat(pagination);
+		for (EmpathyCircle empathyCircle : pagination.getDatas()) {
+			//是否点赞
+				Query queryLike = new Query();
+				queryLike.addCriteria(Criteria.where("empathyCircleId").is(empathyCircle.getId()));
+				queryLike.addCriteria(Criteria.where("isDelete").is(false));
+					queryLike.addCriteria(Criteria.where("userId").is(userId));
+					queryLike.with(new Sort(new Order(Direction.DESC, "createTime")));
+					CircleLike giveup = circleLikeService.findOneByQuery(queryLike);
+					if(giveup != null && giveup.getGiveUP() != null){
+						empathyCircle.setGiveUp(giveup.getGiveUP());
+					}else{
+						empathyCircle.setGiveUp(1);
+					}
+				//是否照片付费
+				if(empathyCircle.getIsVague().equals(1)){
+					setVague(empathyCircle,userId);
+				}
+		}
+		return pagination;
+	}
+
+	//查询用户发表的共情圈
+	public List<String> findcircleIds(Integer userId) {
+		Query query = new Query();
+		query.addCriteria(Criteria.where("isDelete").is(false));
+		query.addCriteria(Criteria.where("userId").is(userId));
+		query.with(new Sort(new Order(Direction.DESC, "createTime")));
+		List<EmpathyCircle> list = find(query);
+		List<String> ids = new ArrayList<String>();
+		for (EmpathyCircle empathyCircle : list) {
+			if(empathyCircle != null){
+				ids.add(empathyCircle.getId());
+			}
+		}
+		return ids;
+	}
+	//查看图片
+	public boolean SelfPortrait(Integer userId) {
+		Boolean flag = queryJurisdiction(userId);
+		if(!flag){
+			Integer num = appUserService.queryUserExp(userId);
+			if( num == null ||num < 10){
+				Double amount = appUserService.queryUserAmount(userId);
+				if(amount == null || amount<0.1){
+					throw new IllegalArgumentException("余额不足");
+				}
+				userAmountChangeRecord.UserAmountChangeRecord(ExpConstants.VIEW_CIRCLE_PHOTO, userId, ExpConstants.EXPEND, 0.1);   
+			}else{
+				userExpChangeRecordService.insertUserExp(ExpConstants.VIEW_CIRCLE_PHOTO, userId, ExpConstants.EXPEND, 10);
+			}
+		}
+		return true;
+	}
+}
+
+

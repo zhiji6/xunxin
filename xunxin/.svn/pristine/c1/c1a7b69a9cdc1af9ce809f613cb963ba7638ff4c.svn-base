@@ -1,0 +1,377 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.xunxin.dao.im.UserFriendsMapper" >
+  <resultMap id="BaseResultMap" type="com.xunxin.vo.im.UserFriends" >
+    <id column="id" property="id" jdbcType="INTEGER" />
+    <result column="user_id" property="userId" jdbcType="INTEGER" />
+    <result column="friend_id" property="friendId" jdbcType="INTEGER" />
+    <result column="is_delete" property="isDelete" jdbcType="INTEGER" />
+    <result column="createDate" property="createdate" jdbcType="TIMESTAMP" />
+    <result column="updateDate" property="updatedate" jdbcType="TIMESTAMP" />
+    <result column="is_shield" property="isShield" jdbcType="INTEGER" />
+    <result column="is_report" property="isReport" jdbcType="INTEGER" />
+     <result column="type" property="type" jdbcType="VARCHAR" />
+  </resultMap>
+   <resultMap id="BaseResultFriendMap" type="com.xunxin.vo.im.UserFriends" >
+    <id column="id" property="id" jdbcType="INTEGER" />
+    <result column="user_id" property="userId" jdbcType="INTEGER" />
+    <result column="friend_id" property="friendId" jdbcType="INTEGER" />
+    <result column="is_delete" property="isDelete" jdbcType="INTEGER" />
+    <result column="createTime" property="createdate" jdbcType="TIMESTAMP" />
+    <result column="updateDate" property="updatedate" jdbcType="TIMESTAMP" />
+    <result column="is_shield" property="isShield" jdbcType="INTEGER" />
+    <result column="is_report" property="isReport" jdbcType="INTEGER" />
+    <result column="nickName" property="nickName" jdbcType="VARCHAR" />
+    <result column="gender" property="gender" jdbcType="VARCHAR" />
+    <result column="ID" property="userID" jdbcType="VARCHAR" />
+    <result column="is_login" property="isLogin" jdbcType="INTEGER" />
+    <result column="sexualOrientation" property="sexualOrientation" jdbcType="VARCHAR" />
+    <result column="openRemark" property="openRemark" jdbcType="VARCHAR" />
+    <result column="introduce" property="introduce" jdbcType="VARCHAR" />
+    <result column="phone" property="phone" jdbcType="VARCHAR" />
+     <result column="type" property="type" jdbcType="VARCHAR" />
+  </resultMap>
+  <sql id="Base_Column_List" >
+    id, user_id, friend_id, is_delete, createDate, updateDate, type
+  </sql>
+  <select id="selectByPrimaryKey" resultMap="BaseResultMap" parameterType="java.lang.Integer" >
+    select 
+    <include refid="Base_Column_List" />
+    from xunxin_user_friends
+    where id = #{id,jdbcType=INTEGER}
+  </select>
+  <delete id="deleteByPrimaryKey" parameterType="java.lang.Integer" >
+    delete from xunxin_user_friends
+    where id = #{id,jdbcType=INTEGER}
+  </delete>
+  <insert  id="insert" parameterType="com.xunxin.vo.im.UserFriends" >
+    insert into xunxin_user_friends (id, user_id, friend_id, 
+      is_delete, createDate, updateDate, 
+       type)
+    values (#{id,jdbcType=INTEGER}, #{userId,jdbcType=INTEGER}, #{friendId,jdbcType=INTEGER}, 
+      #{isDelete,jdbcType=INTEGER}, #{createdate,jdbcType=TIMESTAMP}, #{updatedate,jdbcType=TIMESTAMP}, 
+      #{type,jdbcType=VARCHAR})
+  </insert>
+  <insert id="insertSelective" parameterType="com.xunxin.vo.im.UserFriends" >
+    insert into xunxin_user_friends
+    <trim prefix="(" suffix=")" suffixOverrides="," >
+      <if test="id != null" >
+        id,
+      </if>
+      <if test="userId != null" >
+        user_id,
+      </if>
+      <if test="friendId != null" >
+        friend_id,
+      </if>
+      <if test="isDelete != null" >
+        is_delete,
+      </if>
+      <if test="createdate != null" >
+        createDate,
+      </if>
+      <if test="updatedate != null" >
+        updateDate,
+      </if>
+      <if test="isShield != null" >
+        is_shield,
+      </if>
+      <if test="isReport != null" >
+        is_report,
+      </if>
+    </trim>
+    <trim prefix="values (" suffix=")" suffixOverrides="," >
+      <if test="id != null" >
+        #{id,jdbcType=INTEGER},
+      </if>
+      <if test="userId != null" >
+        #{userId,jdbcType=INTEGER},
+      </if>
+      <if test="friendId != null" >
+        #{friendId,jdbcType=INTEGER},
+      </if>
+      <if test="isDelete != null" >
+        #{isDelete,jdbcType=INTEGER},
+      </if>
+      <if test="createdate != null" >
+        #{createdate,jdbcType=TIMESTAMP},
+      </if>
+      <if test="updatedate != null" >
+        #{updatedate,jdbcType=TIMESTAMP},
+      </if>
+      <if test="isShield != null" >
+        #{isShield,jdbcType=INTEGER},
+      </if>
+      <if test="isReport != null" >
+        #{isReport,jdbcType=INTEGER},
+      </if>
+    </trim>
+  </insert>
+  <update id="updateByPrimaryKeySelective" parameterType="com.xunxin.vo.im.UserFriends" >
+    update xunxin_user_friends
+    <set >
+      <if test="userId != null" >
+        user_id = #{userId,jdbcType=INTEGER},
+      </if>
+      <if test="friendId != null" >
+        friend_id = #{friendId,jdbcType=INTEGER},
+      </if>
+      <if test="isDelete != null" >
+        is_delete = #{isDelete,jdbcType=INTEGER},
+      </if>
+      <if test="createdate != null" >
+        createDate = #{createdate,jdbcType=TIMESTAMP},
+      </if>
+      <if test="updatedate != null" >
+        updateDate = #{updatedate,jdbcType=TIMESTAMP},
+      </if>
+      <if test="isShield != null" >
+        is_shield = #{isShield,jdbcType=INTEGER},
+      </if>
+      <if test="isReport != null" >
+        is_report = #{isReport,jdbcType=INTEGER},
+      </if>
+    </set>
+    where id = #{id,jdbcType=INTEGER}
+  </update>
+  <update id="updateByPrimaryKey" parameterType="com.xunxin.vo.im.UserFriends" >
+    update xunxin_user_friends
+    set user_id = #{userId,jdbcType=INTEGER},
+      friend_id = #{friendId,jdbcType=INTEGER},
+      is_delete = #{isDelete,jdbcType=INTEGER},
+      createDate = #{createdate,jdbcType=TIMESTAMP},
+      updateDate = #{updatedate,jdbcType=TIMESTAMP},
+      is_shield = #{isShield,jdbcType=INTEGER},
+      is_report = #{isReport,jdbcType=INTEGER},
+      type = #{type,jdbcType=VARCHAR},
+    where id = #{id,jdbcType=INTEGER}
+  </update>
+  
+    <select id="queryFriendsBy" resultType="java.lang.Integer" parameterType="java.lang.Integer" >
+    select 
+    distinct 
+    s.friend_id
+    from xunxin_user_friends s
+    where 
+    	type = 'friend'
+    	and
+    	user_id = #{userId,jdbcType=INTEGER}
+  </select>
+  
+  <insert id="insertFriend" parameterType="java.util.List">
+    insert into xunxin_user_friends (id, user_id, friend_id, 
+      is_delete, createDate, updateDate, 
+      is_shield, is_report,type)
+    values 
+    <foreach collection ="list" item="item" index= "index" separator =",">
+                 (
+                 #{item.id,jdbcType=INTEGER},
+                  #{item.userId,jdbcType=INTEGER},
+                 #{item.friendId,jdbcType=INTEGER}, 
+      			#{item.isDelete,jdbcType=INTEGER},
+      			 #{item.createdate,jdbcType=TIMESTAMP}, 
+      			 #{item.updatedate,jdbcType=TIMESTAMP}, 
+      			#{item.isShield,jdbcType=INTEGER}, 
+      			#{item.isReport,jdbcType=INTEGER},
+      			#{item.type,jdbcType=VARCHAR}
+                 )
+             </foreach >
+  </insert>
+  <!-- 查找好友列表 -->
+    <select id="findAllFriendsByUserId" resultMap="BaseResultFriendMap" parameterType="java.lang.Integer" >
+    		  SELECT
+					d.id,
+					d.user_id,
+					d.friend_id,
+					d.is_delete,
+					d.createDate,
+					d.updateDate,
+					u.nickName,
+					u.is_login,
+					u.sexualOrientation,
+					u.gender,
+					u.introduce,
+					u.phone
+				FROM
+					xunxin_user_friends d
+				LEFT JOIN xunxin_user u ON d.friend_id = u.uid
+				WHERE
+					d.user_id = #{userId,jdbcType=INTEGER}
+				AND d.is_delete != 1
+				AND d.type = 'friend'
+				AND d.friend_id NOT IN (
+					SELECT
+						s.report_id
+					FROM
+						xunxin_user_report s
+					WHERE
+					s.type = 'shield'
+					AND s.user_id = #{userId,jdbcType=INTEGER}
+					AND s.is_delete = 1
+				)
+				ORDER BY
+					u.is_login
+<!-- 		    SELECT
+				d.id,
+				d.user_id,
+				d.friend_id,
+				d.is_delete,
+				d.createDate,
+				d.updateDate,
+				d.is_shield,
+				d.is_report,
+				u.nickName,
+				u.is_login,
+				u.sexualOrientation,
+				u.gender,
+				a.openRemark
+			FROM
+				xunxin_user_friends d
+			LEFT JOIN xunxin_user u ON d.friend_id = u.uid
+			LEFT JOIN xunxin_user_info_data a ON a.userId = u.uid
+			WHERE
+				u.uid IN (
+					SELECT
+						f.friend_id
+					FROM
+						xunxin_user_friends f
+					WHERE
+						f.type = 'friend'
+					AND f.user_id = #{userId,jdbcType=INTEGER}
+				)
+			AND d.is_delete != 1
+			AND d.type = 'friend'
+			AND d.friend_id NOT IN (
+				SELECT
+					s.shield_id
+				FROM
+					xunxin_user_friends d
+				RIGHT JOIN xunxin_user_shield s ON d.user_id = s.user_id
+				AND d.friend_id = s.shield_id
+				WHERE
+					s.is_shield = 1
+			)
+			AND d.friend_id NOT IN (
+				SELECT
+					r.report_id
+				FROM
+					xunxin_user_friends d
+				RIGHT JOIN xunxin_user_report r ON d.user_id = r.user_id
+				AND d.friend_id = r.report_id
+				WHERE
+					r.is_report = 1
+			) -->
+
+  </select>
+  <select id="findAttentionsMe" resultMap="BaseResultFriendMap" parameterType="java.lang.Integer" >
+		   SELECT
+				d.user_id,
+				d.friend_id,
+				d.updateDate,
+				u.ID,
+				u.is_login,
+				u.nickName,
+				u.sexualOrientation,
+				u.gender,
+				u.createTime
+			FROM
+				xunxin_user_friends d
+			LEFT JOIN xunxin_user u ON d.friend_id = u.uid
+			WHERE
+				d.user_id = #{userId,jdbcType=INTEGER}
+			AND d.is_delete != 1
+			AND d.type = 'attention'
+			AND d.friend_id NOT IN (
+				SELECT
+					s.report_id
+				FROM
+					xunxin_user_report s
+				WHERE
+					(
+						s.type = 'report'
+						OR s.type = 'shield'
+					)
+				AND s.user_id = #{userId,jdbcType=INTEGER}
+				AND s.is_delete = 1
+			)
+			ORDER BY
+				u.is_login,
+				u.createTime DESC
+
+  </select>
+    <select id="findAttentionsToMe" resultMap="BaseResultFriendMap" parameterType="java.lang.Integer" >
+		    SELECT
+			<!-- d.id, -->
+			d.user_id,
+			d.friend_id,
+			d.updateDate,
+			u.ID,
+			u.is_login,
+			u.nickName,
+			u.sexualOrientation, 
+			u.gender,
+			u.createTime
+		FROM
+			xunxin_user_friends d
+		LEFT JOIN xunxin_user u ON d.user_id = u.uid
+
+		WHERE
+			d.friend_id =#{userId,jdbcType=INTEGER}
+		AND d.is_delete <![CDATA[<>]]> 1
+		And d.type = 'attention'
+  </select>
+  	<!-- 删除好友 -->
+    <update id="deletefriend" parameterType="java.lang.Integer" >
+		    UPDATE xunxin_user_friends
+				SET is_delete = 1
+				WHERE
+					user_id = #{userId,jdbcType=INTEGER}
+				AND friend_id =  #{id,jdbcType=INTEGER}
+  </update>
+    	<!-- 移除屏蔽的人 -->
+    <update id="deleteShield" parameterType="java.lang.Integer" >
+		    UPDATE xunxin_user_friends
+				SET is_shield = 1
+				WHERE
+					user_id = #{userId,jdbcType=INTEGER}
+				AND friend_id =  #{id,jdbcType=INTEGER}
+  </update>
+      	<!-- 移除举报的人 -->
+    <update id="deleteReport" parameterType="java.lang.Integer" >
+		    UPDATE xunxin_user_friends
+				SET is_report = 1
+				WHERE
+					user_id = #{userId,jdbcType=INTEGER}
+				AND friend_id =  #{id,jdbcType=INTEGER}
+  </update>
+<!--   查找已关注的人 -->
+  <select id="findOneByUserIdandFriendId" resultMap="BaseResultMap" parameterType="java.lang.Integer" >
+    select 
+    *
+    from xunxin_user_friends
+    where user_id = #{userId,jdbcType=INTEGER}
+    and friend_id = #{another,jdbcType=INTEGER}
+    and is_delete != 1
+    and type = 'attention'
+  </select>
+        	<!-- 更新我关注的人 -->
+    <update id="updateByanother" parameterType="java.lang.Integer" >
+		    UPDATE xunxin_user_friends
+				SET is_delete = #{isDelete,jdbcType=INTEGER}
+				WHERE
+					user_id = #{userId,jdbcType=INTEGER}
+				AND friend_id =  #{another,jdbcType=INTEGER}
+  </update>
+  <!-- 查找我的好友 -->
+    <select id="findmyFriend" resultMap="BaseResultMap" parameterType="java.lang.Integer" >
+			    SELECT
+				*
+			FROM
+				xunxin_user_friends d
+			WHERE
+				user_id = #{userId,jdbcType=INTEGER}
+			AND d.friend_id = #{another,jdbcType=INTEGER}
+			AND d.type = 'friend'
+  </select>
+
+</mapper>

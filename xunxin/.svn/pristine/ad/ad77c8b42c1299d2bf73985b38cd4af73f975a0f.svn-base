@@ -1,0 +1,327 @@
+<%@ page language="java" contentType="text/html; charset=UTF-8"
+    pageEncoding="UTF-8"%>
+<%@ include file="/WEB-INF/include/taglib.jsp"%>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<system:header/>
+<!-- jsp文件头和头部 -->
+<script type="text/javascript" charset="utf-8" src="plugins/ueditor/ueditor.config.js"></script>
+<script type="text/javascript" charset="utf-8" src="plugins/ueditor/ueditor.all.js"> </script>
+<script type="text/javascript" charset="utf-8" src="plugins/ueditor/lang/zh-cn/zh-cn.js"></script>
+</head>
+<body class="gray-bg">
+    <div class="wrapper wrapper-content animated fadeInRight">
+        <div class="row"
+            <div class="col-sm-12">
+                <div class="ibox float-e-margins">
+
+                    <div class="ibox-content">
+                        <form id="ArticleRotationForm" name="ArticleRotationForm" class="form-horizontal" method="post">
+                            <div class="form-group">
+                                <label class="col-sm-2 control-label">请输入您要上传的问题</label>
+                                <div class="col-sm-4">
+                                    <input type="text" id="name" class="form-control required" name="name" value="${pd.name}" style="width:500px;" class="form-control" placeholder="请输入您要编辑的问题" />
+                                </div>
+                                
+                                <label class="col-sm-2 control-label">请选择板块：</label>
+                                <div class="col-sm-2">
+                                    <select class="form-control" name="sectionName" id="sectionName" value="${pd.sectionName}" 
+                                          ajax--url="/api/qa/full_qa_section_list" ajax--column="ID,TEXT" style="width:140px;">
+                                          <option value="">--选择板块--</option>
+                                    </select>
+                                </div>
+                            </div>
+                            
+                            <div class="form-group" id="linked">
+                                <label class="col-sm-2 control-label">请输入你要搜索的外链</label>
+                                <div class="col-sm-4">
+                                    <input type="text" id="linked_url" class="form-control required" name="linked_url" value="${pd.linked_url}" style="width:500px;" class="form-control" placeholder="请输入你要搜索的外链" />
+                                </div>
+                                
+                                <div class="col-sm-2 text-left" style="padding-left:45px;">
+                                    <button id="btn_Save" class="btn btn-primary" type="button" onclick="spiderUrl();">获取摘要</button>
+                                    <button id="btn_Save" class="btn btn-primary" type="button" onclick="spiderClear();">清空</button>
+                                </div>
+                            </div>
+                            
+                            <c:if test="${pd.linked_recordId != null && pd.linked_recordId != '' }">
+                                 <div class="form-group" id="clidrenLinked">
+                                    <label class="col-sm-2 control-label">Q&A摘要：</label>
+                                    <div class="col-sm-4" style="border:1px black solid;width:690px;height:318px;margin-left: 12px;border-radius: 10px" >
+                                        <div style="width:520px;height:30px;float:left">
+                                            <span class="title" style="text-align:center;display:inline-block;width:500px;overflow:hidden;" disabled="true"><a style="font-size:25px;width:520px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#ff6699;font-family:楷体;">${pd.title}</a></span>
+                                        </div>
+                                        <div class="img" style="">
+                                            <img alt="" src="${pd.image}" disabled="true" style="float: right;width:139px;height: 167px">
+                                        </div>
+                                        <div style="width:520px;height:227px;padding-top:30px;">
+                                            <span class="content" disabled="true"><a style="color:black;font-size:15px;overflow:hidden;text-overflow:ellipsis;display:-webkit-box;-webkit-line-clamp:10;-webkit-box-orient: vertical;">${pd.content}</a></span>
+                                        </div>
+                                        <div style="height:46px;padding-top:20px;padding-bottom:10px;">
+                                            <span class="source" disabled="true" style="padding-left:50px"><a style="font-size:30px;font-family:楷体;">${pd.source}</a></span>
+                                        </div>
+                                    </div>
+                                 </div>
+                            </c:if>
+                            
+                            <div class="form-group">
+                                <label class="col-sm-2 control-label">请输入您要上传的内容</label>
+                                
+                                <!-- 加载编辑器的容器 -->  
+                                <script id="container" name="container" style="margin: 0px auto;margin-left:294px;" type="text/plain" value="${pd.qa_content}"> </script>  
+                                   
+                            </div>  
+                                
+                            <div class="form-group">
+                                <label class="col-sm-2 control-label">请输入您的观点</label>
+                                
+                                <div class="col-sm-2 col-sm-offset-1 text-right">
+                                    <button id="btn_Save" class="btn btn-primary" type="button" onclick="add_answer();">添加观点</button>
+                                </div>
+                                <!-- <div class="col-sm-2 control-label" style="margin-left:150px;size:20px">
+                                    <span id="btn_Save" class="fa fa-plus-square-o" width="20px" font-size="20px" onclick="add_answer();"><a>添加观点</a></span>
+                                </div> -->
+                            </div>
+                            
+                            <c:forEach items="${pd.answers}" var="item" varStatus="i">
+                                <div class="form-group" >
+                                    <label class="col-sm-2 control-label">Q&A观点 ${i.index}： </label>
+                                    <div class="col-sm-4" id="answers">
+                                        <input type="text" class="form-control required" name="answer" id="answer" value="${item.answer}" style="width:800px;" onkeydown="fullInput();"  />
+                                    </div>
+                                </div>
+                            </c:forEach>
+                            
+                            <div class="form-group">  
+                                <div class="form-group">
+                                    <div class="col-sm-2 col-sm-offset-3 text-center" style="margin-top:150px">
+                                        <button id="btn_Save" class="btn btn-primary" type="button" onclick="submitForm();">添加</button>
+                                        <button id="btn_Cancel" class="btn btn-white" type="button" onclick="goBack();">取消</button>
+                                    </div>
+                                </div>  
+                            </div>
+                            
+                            
+                        </form>
+                    </div>
+                </div>
+            </div>  
+        </div>
+    </div>
+    
+    <!-- 全局js -->
+    <system:jsFooter/>
+    <!-- 自定义js -->
+    <script type="text/javascript">
+        //表单ID
+        var formId = "#ArticleRotationForm";
+        $(document).ready(function(){
+            //初始化下拉菜单
+            $("#sectionName").createOption();
+            //初始化富文本
+            initUedit();
+              
+            var content = ${pd.qa_content};
+            UE.getEditor('container').setContent(content,true);
+            //调用方式
+            var arr=new Array(
+               new Array('name','问题名称不可为空!'),
+               new Array('sectionName','未选择板块')
+            );
+            if(!checkForm(arr)){
+               return false;
+            }
+            
+        });
+        
+
+        function fullInput(){
+            var inputText = $("#answer").val();
+            if(inputText.length > 40){
+                var text = inputText.substring(0,40);
+                document.getElementById('answer').value = text;//从新设置input输入框的值
+                alert("最多输入40个字符");
+            }
+        }
+        
+        //批量验证表单非空
+        function checkForm(arr){
+          for(var i=0;i<arr.length;i++){
+              if($("#"+arr[i][0]).val()==''){
+                $("#"+arr[i][0]).focus();
+                return false;
+              }
+          }
+          return true;
+        };
+        
+        //表单提交
+        function submitForm(){
+            var name = $('#name').val();   //问题名称
+            var sectionName = $("#sectionName").val();  //板块
+            var linked_recordId = $("#linked_recordId").val();     //外链记录ID
+            var content = UE.getEditor('container').getContent();  //html文本
+            //var contentTxt = UE.getEditor('container').getContentTxt();    //纯文本
+            
+            //console.info(content);
+            //console.info(contentTxt);
+            var answers = new Array();
+            $("input[name='answer']").each(function(){ 
+                answers.push($(this).val());
+            }); 
+            console.info(answers.toString());
+            
+            if(name != null && name != ''){
+                $.ajax({
+                    type: "POST",
+                    url: '<%=basePath%>api/qa/publish_qa_to_repertory?tm=' +  new Date().getTime(),
+                    data: {
+                        "name" : name,
+                        "sectionName" : sectionName,
+                        "linked_recordId" : linked_recordId,
+                        "content" : content,
+                        "answers" : answers.toString(),
+                    },
+                    dataType: 'json',
+                    //beforeSend: validateData,
+                    cache: false,
+                    success: function(data) {
+                        if (data.meta.message == 'ok') {
+                            layer.msg("发布成功");
+                            goBack();
+                        } else {
+                            layer.msg(data.meta.message);
+                        }
+                    }
+                });
+                
+            } else{
+                layer.msg("请填写要发布的问题名称");
+            }
+            
+        }
+        
+        //返回到列表页面 
+        function goBack(){
+            this.location.href="<%=basePath%>api/qa/qa_question_manager";
+        }
+        
+        //获取摘要
+        function spiderUrl(){
+            var linked_url = $("#linked_url").val();
+            if(linked_url != null && linked_url != ''){
+            $.ajax({
+                type: "POST",
+                url: '<%=basePath%>api/qa/spider_linked_url?tm=' +  new Date().getTime(),
+                data: {"linked_url":linked_url},
+                dataType: 'json',
+                cache: false,
+                success: function(data) {
+                    if (data.meta.message == 'ok') {
+                        var id = data.data.id;
+                        var title = data.data.title;
+                        var source = data.data.source;
+                        var content = data.data.content;
+                        var image = data.data.image;
+                        
+                        var format_v = "<div class=\"form-group\" id=\"clidrenLinked\">"
+                            + "<label class=\"col-sm-2 control-label\">" + "Q&A摘要:" + "</label>"
+                            + "<div class=\"col-sm-4\" style=\"border:1px black solid;width:690px;height:318px;margin-left: 12px;border-radius: 10px\" >"
+                                + "<input type=\"hidden\" name=\"linked_recordId\" id=\"linked_recordId\" value=\'" + id + "' />"
+                                + "<div style=\"width:520px;height:30px;float:left\">"
+                                   + "<span class=\"title\" style=\"text-align:center;display:inline-block;width:500px;overflow:hidden;\"  disabled=\"true\"><a style=\"font-size:25px;width:520px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#ff6699;font-family:楷体;\">" + title + "</a></span>"
+                                + "</div>" 
+                                + "<div class=\"img\" style=\"\">"
+                                   + "<img alt=\"\" src='" + image + "' disabled=\"true\" style=\"float: right;width: 139px;height: 167px \" />"
+                                + "</div>"
+                                + "<div style=\"width:520px;height:227px;padding-top:30px;\">"  
+                                   + "<span class=\"content\" disabled=\"true\"><a style=\"color:black;font-size:15px;overflow:hidden;text-overflow:ellipsis;display:-webkit-box;-webkit-line-clamp:10;-webkit-box-orient: vertical;\">" + content + "</a></span>"
+                                + "</div>"  
+                                + "<div  style=\"height:46px;padding-top:20px;padding-bottom:10px;\">"
+                                   + "<span class=\"source\" disabled=\"true\" style=\"padding-left:50px\"><a style=\"font-size:30px;font-family:楷体;\">" + source + "</a></span>"
+                                + "</div>" 
+                           + "</div>"  
+                       + " </div>";
+                   
+                    if($("#clidrenLinked").html() != ""){
+                        $("#id").html("");
+                        //$("#clidrenLinked").html = "";
+                    }   
+                    $("#linked").append("<br/><br/><br/>");//添加换行
+                    $("#linked").append(format_v);
+                    
+                    UE.getEditor('container').setContent("[链接]",true);
+                                    
+                    } else {
+                        layer.msg(data.meta.message);
+                    }
+                }
+            });
+            
+            } else{
+                 layer.msg("请输入正确链接");
+            }
+                
+        }
+        
+        //清空
+        function spiderClear(){
+            console.info("清空摘要");
+            $('#linked').find('br').remove();
+            $("#clidrenLinked").remove();
+            //editor 是编辑器实例
+            UE.getEditor('container').execCommand('cleardoc');
+        }
+        
+        //添加观点
+        function add_answer(){
+            var format_v = "<input type=\"text\" class=\"form-control required\" id=\"answer\" name=\"answer\" style=\"width:800px;\" class=\"form-control\" placeholder=\"ps:观点\" onkeydown=\"fullInput();\" />";
+            $("#answers").append(format_v);
+        }
+        
+        
+    </script>
+    
+    <script type="text/javascript">  
+     //初始化Uedit
+    function initUedit(){
+       //<!-- 实例化编辑器 -->  
+        var editor = UE.getEditor('container',{    
+            //这里可以选择自己需要的工具按钮名称,此处仅选择如下五个    
+             toolbars: [[
+                'fullscreen', 'source', '|', 'undo', 'redo', '|',
+                'bold', 'italic', 'underline', 'fontborder', 'strikethrough', 'superscript', 'subscript', 'removeformat', 'formatmatch', 'autotypeset', 'blockquote', 'pasteplain', '|', 'forecolor', 'backcolor', 'insertorderedlist', 'insertunorderedlist', 'selectall', 'cleardoc', '|',
+                'rowspacingtop', 'rowspacingbottom', 'lineheight', '|',
+                'customstyle', 'paragraph', 'fontfamily', 'fontsize', '|',
+                'directionalityltr', 'directionalityrtl', 'indent', '|',
+                'justifyleft', 'justifycenter', 'justifyright', 'justifyjustify', '|', 'touppercase', 'tolowercase', '|',
+                'link', 'unlink', 'anchor', '|', 'imagenone', 'imageleft', 'imageright', 'imagecenter', '|',
+                'simpleupload', 'insertimage', 'emotion', 'scrawl', 'insertvideo', 'music', 'attachment', 'map', 'gmap', 'insertframe', 'insertcode', 'webapp', 'pagebreak', 'template', 'background', '|',
+                'horizontal', 'date', 'time', 'spechars', 'snapscreen', 'wordimage', '|',
+                'inserttable', 'deletetable', 'insertparagraphbeforetable', 'insertrow', 'deleterow', 'insertcol', 'deletecol', 'mergecells', 'mergeright', 'mergedown', 'splittocells', 'splittorows', 'splittocols', 'charts', '|',
+                'print', 'preview', 'searchreplace', 'drafts', 'help'
+            ]],
+            //focus时自动清空初始化时的内容    
+            autoClearinitialContent:true,    
+            //关闭字数统计    
+            wordCount:false,    
+            //关闭elementPath    
+            elementPathEnabled:false,
+            zIndex : 9010,
+            //initialFramePosition : center,
+            initialFrameWidth : "80%",
+            //默认的编辑区域高度    
+            initialFrameHeight:300    
+            //更多其他参数，请参考ueditor.config.js中的配置项    
+        });    
+        
+        
+    } 
+     
+    </script>  
+    
+    
+    
+</body>
+</html>

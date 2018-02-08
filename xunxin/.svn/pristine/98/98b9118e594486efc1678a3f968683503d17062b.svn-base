@@ -1,0 +1,177 @@
+package com.xunxin.controller.app.square;
+
+import java.util.Date;
+import java.util.List;
+
+import org.apache.log4j.Logger;
+import org.bson.BsonArray;
+import org.bson.BsonDouble;
+import org.bson.Document;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.mongodb.core.query.Criteria;
+import org.springframework.data.mongodb.core.query.Query;
+import org.springframework.data.mongodb.core.query.Update;
+import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.ResponseBody;
+
+import com.mongodb.client.FindIterable;
+import com.mongodb.client.MongoCollection;
+import com.xunxin.config.LuceneEngineutil;
+import com.xunxin.controller.app.message.MessTypeFactory;
+import com.xunxin.controller.system.BaseController;
+import com.xunxin.service.app.AppUserService;
+import com.xunxin.service.app.IMNewsService;
+import com.xunxin.service.app.UserFriendsService;
+import com.xunxin.service.app.square.UserBrushAgainstRecordService;
+import com.xunxin.vo.im.UserFriends;
+import com.xunxin.vo.square.UserBrushAgainstRecord;
+import com.xunxin.vo.sys.PageData;
+import com.xunxin.vo.user.UserEntity;
+import com.xunxin.web.api.bean.Response;
+import com.xunxin.web.api.bean.Router;
+
+/**
+ * 
+ * Copyright © 2017 Xunxin Network Technology Co. Ltd.
+ *
+ * @Author Noseparte
+ * @Compile 2018年1月16日 -- 下午12:57:28
+ * @Version 1.0
+ * @Description         擦肩而过
+ */
+@Controller
+@RequestMapping(value=Router.PATH+Router.Brush.PATH)
+public class BrushAgainstController extends BaseController{
+
+    private final static Logger log = Logger.getLogger(BrushAgainstController.class);
+    
+    @Autowired
+    private UserBrushAgainstRecordService userBrushAgainstRecordService;
+    @Autowired
+    private IMNewsService iMNewsService;
+    @Autowired
+    private AppUserService appUserService;
+    @Autowired
+    private UserFriendsService userFriendsService;
+    
+    /**
+     * 擦肩而过
+     * 
+     * @param userId
+     * @return
+     */
+    @RequestMapping(value=Router.Brush.ISORNOT_OPEN_PUSH,method=RequestMethod.POST)
+    @ResponseBody
+    public Response isOrNot_open_push(@RequestParam("userId") int userId,
+            @RequestParam("longitude") double longitude,@RequestParam("latitude") double latitude) {
+        log.info("infoMsg:--- 用户擦肩而过开始");
+        Response reponse = this.getReponse();
+        PageData pd = new PageData<>();
+        try {
+            Query addCriteria = new Query().addCriteria(Criteria.where("userId").is(userId));
+            UserBrushAgainstRecord record = userBrushAgainstRecordService.findOneByQuery(addCriteria);
+            if(record != null) {
+                int isOpen = record.getIsOpen();
+                pd.put("isOpen", isOpen);
+            }else {
+                pd.put("isOpen", 0);
+//                Document newDocument =new Document().append("userId", userId).append("createTime", new Date()).append("isOpen", 0).append("isDelete", false)
+//                        .append("coordinate",new Document().append("longitude",longitude)
+//                        .append("latitude", latitude));
+//                userBrushAgainstRecordService.getMongoTemplate().insert(newDocument, "userBrushAgainstRecord");
+                record = new UserBrushAgainstRecord();
+                record.setIsOpen(0);
+                record.setUserId(userId);
+//                Document newDocument = new Document().append("coordinate",new Document().append("longitude",longitude).append("latitude", latitude));
+                PageData coordinate = new PageData<>();
+                coordinate.put("longitude", longitude);
+                coordinate.put("latitude", latitude);
+                record.setCoordinate(coordinate);
+                userBrushAgainstRecordService.save(record);
+            }
+            log.info("infoMsg:--- 用户擦肩而过结束");
+            return reponse.success(pd);
+        } catch (Exception e) {
+            log.error("errorMsg:{--- 用户擦肩而过失败:" + e.getMessage() + "---}");
+            return reponse.failure(e.getMessage());
+        }
+    }
+    
+    /**
+     * 开启擦肩而过消息推送
+     * 
+     * @param userId
+     * @return
+     */
+    @RequestMapping(value=Router.Brush.OPEN_PUSH,method=RequestMethod.POST)
+    @ResponseBody
+    public Response open_push(@RequestParam("userId") int userId,
+            @RequestParam("longitude") double longitude,@RequestParam("latitude") double latitude) {
+        log.info("infoMsg:--- 用户开启擦肩而过消息推送开始");
+        Response reponse = this.getReponse();
+        PageData pd = new PageData<>();
+        try {
+            Query addCriteria = new Query().addCriteria(Criteria.where("userId").is(userId));
+            UserBrushAgainstRecord record = userBrushAgainstRecordService.findOneByQuery(addCriteria);
+            if(record != null) {
+                int isOpen = record.getIsOpen();
+                pd.put("isOpen", isOpen);
+                PageData coordinate = new PageData<>();
+                coordinate.put("longitude", longitude);
+                coordinate.put("latitude", latitude);
+                Update update = new Update().set("coordinate", coordinate).set("isOpen", 1);
+                userBrushAgainstRecordService.updateFirst(addCriteria, update);
+            }else {
+                pd.put("isOpen", 0);
+                record = new UserBrushAgainstRecord();
+                record.setIsOpen(0);
+                record.setUserId(userId);
+                PageData coordinate = new PageData<>();
+                coordinate.put("longitude", longitude);
+                coordinate.put("latitude", latitude);
+                record.setCoordinate(coordinate);
+                userBrushAgainstRecordService.save(record);
+            }
+            log.info("infoMsg:--- 用户开启擦肩而过消息推送结束");
+            return reponse.success();
+        } catch (Exception e) {
+            log.error("errorMsg:{--- 用户开启擦肩而过消息推送开始:" + e.getMessage() + "---}");
+            return reponse.failure(e.getMessage());
+        }
+    }
+    
+    
+    /**
+     * 关闭擦肩而过消息推送
+     * 
+     * @param userId
+     * @return
+     */
+    @RequestMapping(value=Router.Brush.CLOSE_PUSH,method=RequestMethod.POST)
+    @ResponseBody
+    public Response close_push(@RequestParam("userId") int userId) {
+        log.info("infoMsg:--- 用户关闭擦肩而过消息推送开始");
+        Response reponse = this.getReponse();
+        PageData pd = new PageData<>();
+        try {
+            Query addCriteria = new Query().addCriteria(Criteria.where("userId").is(userId));
+            UserBrushAgainstRecord record = userBrushAgainstRecordService.findOneByQuery(addCriteria);
+            if(record != null) {
+                int isOpen = record.getIsOpen();
+                pd.put("isOpen", isOpen);
+                Update update = new Update().set("isOpen", 0);
+                userBrushAgainstRecordService.updateFirst(addCriteria, update);
+            }
+            log.info("infoMsg:--- 用户开启擦肩而过消息推送结束");
+            return reponse.success();
+        } catch (Exception e) {
+            log.error("errorMsg:{--- 用户开启擦肩而过消息推送开始:" + e.getMessage() + "---}");
+            return reponse.failure(e.getMessage());
+        }
+    }
+    
+
+}

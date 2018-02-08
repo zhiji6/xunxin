@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"   
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.xunxin.dao.app.user.UserFeedBackDao">
+
+	<!-- <select id="findByPayId" parameterType="com.xunxin.vo.user.UserFeedBackVO">
+		select p.id,p.bank_id,p.third_name,p.third_type,p.mer_no,p.mer_key,p.return_url
+		from xunxin_sys_pay_thirdpay p 
+		where p.bank_id=#{bank_id}
+	</select> -->
+
+	<insert id="save">
+		INSERT INTO xunxin_user_feedback (
+			feedContent,
+			urls,
+			feedTime,
+			feedRemark,
+			userId
+		)
+		VALUES
+			(
+				#{feedContent},
+				#{urls},
+				now(),
+				#{feedRemark},
+				#{userId}
+			)	
+	</insert>	
+
+
+
+
+</mapper>

@@ -1,0 +1,30 @@
+package com.xunxin.service.app.user;
+
+import org.springframework.data.mongodb.core.query.Criteria;
+import org.springframework.data.mongodb.core.query.Query;
+import org.springframework.data.mongodb.core.query.Update;
+import org.springframework.stereotype.Repository;
+
+import com.xunxin.dao.impl.app.UserSignDaoImpl;
+import com.xunxin.dao.impl.app.UserWelfareDaoImpl;
+
+@Repository
+public class UserWelfareService extends UserWelfareDaoImpl{
+	//更新在线时长
+	public void updateOnline(Integer uid, Integer userCount) {
+		Query query = new Query();
+		query.addCriteria(Criteria.where("isDelete").is(false));
+		query.addCriteria(Criteria.where("userId").is(uid));
+		Update update = Update.update("lastMonthOnTime", userCount);
+		updateAllByQuery(query, update);
+	}
+
+	public void updateSum(Integer sum) {
+		Query query = new Query();
+		query.addCriteria(Criteria.where("isDelete").is(false));
+		Update update = Update.update("lastMonthOnTime", sum);
+		updateAllByQuery(query, update);
+		
+	}
+
+}

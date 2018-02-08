@@ -1,0 +1,14 @@
+eclipse.preferences.version=1
+encoding//resources/jdbc.properties=UTF-8
+encoding//resources/log4j.properties=UTF-8
+encoding//resources/mybatis-config.xml=UTF-8
+encoding//resources/quartz.properties=UTF-8
+encoding//src/main/java=UTF-8
+encoding//src/main/webapp/WEB-INF/assets/plugs/jquery-validation-1.14.0/messages_zh.js=UTF-8
+encoding//src/main/webapp/WEB-INF/jsp/xunxin/qa/qa_question_manager.jsp=UTF-8
+encoding//src/main/webapp/WEB-INF/plugins/ueditor/jsp/config.json=UTF-8
+encoding//src/main/webapp/WEB-INF/tags/system/jsFooter.tag=UTF-8
+encoding//src/test/java=UTF-8
+encoding//src/test/resources=UTF-8
+encoding/<project>=UTF-8
+encoding/resources=UTF-8

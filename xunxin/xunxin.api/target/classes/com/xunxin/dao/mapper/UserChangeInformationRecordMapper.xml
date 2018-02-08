@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"   
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.xunxin.dao.app.user.UserChangeInformationRecordDao">
+	
+	<select id="findByUserIdAndField" resultType="com.xunxin.vo.user.UserChangeInformationRecord">
+		SELECT id,fieldName,fieldValue,changeRemark,changeTime,userId
+		from xunxin_user_change_information_record 
+		where userId = #{userId}
+			<if test=" fieldName != null and fieldName != '' ">
+				and fieldName = #{fieldName,jdbcType=VARCHAR}
+			</if>
+	</select>
+	
+	<insert id="save" parameterType="com.xunxin.vo.user.UserChangeInformationRecord">
+		INSERT INTO xunxin_user_change_information_record (
+			fieldName,
+			fieldValue,
+			changeRemark,
+			changeTime,
+			userId
+		) VALUES (
+			#{fieldName,jdbcType=VARCHAR},
+			#{fieldValue,jdbcType=VARCHAR},
+			#{changeRemark,jdbcType=VARCHAR},
+			NOW(),
+			#{userId,jdbcType=INTEGER}
+		)
+	</insert>
+
+</mapper>

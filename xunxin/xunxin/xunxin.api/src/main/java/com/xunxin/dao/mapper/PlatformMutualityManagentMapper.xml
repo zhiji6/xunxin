@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"   
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.xunxin.dao.sys.PlatformMutualityManagentDao">
+
+	<select id="findAll" parameterType="com.xunxin.vo.sys.PageData" resultType="com.xunxin.vo.sys.PageData" useCache="false">
+		select m.id,m.platform_name,m.linked_name,m.linked_password,m.linked_url,m.App_key,m.org_name,m.App_name,m.create_time,m.end_change_time,m.register_schema,
+			m.push_schema,m.client_id,m.client_secret,m.thumbnail_size,m.App_state,m.linked_state
+		from xunxin_data_platform_managent m
+		order by m.id asc
+	</select>
+	
+	<select id="findOne" parameterType="java.lang.Integer" resultType="com.xunxin.vo.sys.PlatformMutualityManagent">
+		select m.id,m.platform_name,m.linked_name,m.linked_password,m.linked_url,m.App_key,m.org_name,m.App_name,m.create_time,m.end_change_time,m.register_schema,
+			m.push_schema,m.client_id,m.client_secret,m.thumbnail_size,m.App_state,m.linked_state
+		from xunxin_data_platform_managent m
+		where m.id=#{platform_id}
+	</select>
+
+	<insert id="insert">
+	
+	</insert>
+
+	<update id="update">
+	
+	</update>
+
+	<delete id="">
+	
+	</delete>
+
+
+</mapper>

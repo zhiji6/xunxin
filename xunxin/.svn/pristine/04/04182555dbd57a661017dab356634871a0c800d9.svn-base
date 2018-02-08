@@ -1,0 +1,252 @@
+package com.xunxin.controller.system;
+
+import java.util.List;
+
+import org.apache.commons.lang3.StringUtils;
+import org.apache.log4j.Logger;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Controller;
+import org.springframework.ui.Model;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.ResponseBody;
+import org.springframework.web.servlet.ModelAndView;
+
+import com.xunxin.service.SystemEntityService;
+import com.xunxin.service.app.AppUserService;
+import com.xunxin.vo.condition.UserSearchCondition;
+import com.xunxin.vo.sys.PageData;
+import com.xunxin.vo.user.UserEntity;
+import com.xunxin.web.api.bean.Response;
+import com.xunxin.web.api.bean.Route;
+import com.xunxin.web.api.bean.Router;
+
+/**
+ * Copyright © 2017 noseparte(Libra) © Like the wind, like rain
+ * @Author Noseparte
+ * @Compile 2017年11月30日 -- 上午10:39:58
+ * @Version 1.0
+ * @Description	用户管理
+ */
+@Controller
+@RequestMapping(value=Route.PATH+Route.User.PATH)
+public class UserManagerController extends BaseController{
+
+	private static final Logger log = Logger.getLogger(UserManagerController.class);
+	
+	@Autowired
+    private AppUserService appUserService;
+    @Autowired
+    private SystemEntityService systemEntityService;
+    
+	/**
+	 * 用户管理
+	 * @return
+	 */
+	@RequestMapping(value=Route.User.USER_MANAGER,method=RequestMethod.GET)
+	public ModelAndView user_manager() {
+		log.info("进入平台用户管理界面");
+		ModelAndView mv = this.getModelAndView();
+		mv.setViewName("/jsp/xunxin/user/user_manager");
+		return mv;
+	}
+	
+	
+	/**
+	 * 活跃用户管理
+	 * @return
+	 */
+	@RequestMapping(value=Route.User.USER_ONLINE,method=RequestMethod.GET)
+	public ModelAndView user_online() {
+		log.info("进入平台活跃用户管理界面");
+		ModelAndView mv = this.getModelAndView();
+		mv.setViewName("/jsp/xunxin/user/user_online");
+		return mv;
+	}
+	
+	/**
+	 * 用户充能
+	 * @return
+	 */
+	@RequestMapping(value=Route.User.ADD_EXP,method=RequestMethod.GET)
+	public ModelAndView add_exp() {
+	    log.info("进入平台活跃用户管理界面");
+	    PageData pageData = this.getPageData();
+	    ModelAndView mv = this.getModelAndView();
+	    mv.addObject("pd",pageData);
+	    mv.setViewName("/jsp/xunxin/user/add_exp");
+	    return mv;
+	}
+	
+	/**
+	 * 用户充能
+	 * @return
+	 */
+	@RequestMapping(value=Route.User.USER_ADD_EXP,method=RequestMethod.POST)
+	@ResponseBody
+	public Response user_add_exp() {
+	    log.info("infoMsg:--- 用户充能开始");
+	    PageData pageData = this.getPageData();
+	    Response reponse = this.getReponse();
+	    try {
+	        int userId = Integer.parseInt(pageData.getString("id"));
+	        int userExp = Integer.parseInt(pageData.getString("userExp"));
+	        UserEntity user = appUserService.findById(userId);
+	        appUserService.user_exp_change(userId, user.getUserExp()+userExp);
+	        log.info("infoMsg:--- 用户充能结束");
+	        return reponse.success();
+        } catch (Exception e) {
+            log.error("errorMsg:--- 用户充能失败:" + e.getMessage() + "---}");
+            return reponse.failure(e.getMessage());
+        }
+	}
+	
+	
+	/**
+	 * 黑名单管理
+	 * @return
+	 */
+	@RequestMapping(value=Route.User.USER_BLACK,method=RequestMethod.GET)
+	public ModelAndView user_black() {
+		log.info("进入平台用户黑名单管理界面");
+		ModelAndView mv = this.getModelAndView();
+		mv.setViewName("/jsp/xunxin/user/user_black");
+		return mv;
+	}
+	
+	
+	/**
+	 * 志愿者管理
+	 * @return
+	 */
+	@RequestMapping(value=Route.User.VOLUTEER_MANAGER,method=RequestMethod.GET)
+	public ModelAndView volunteer_manager() {
+		log.info("进入平台志愿者用户管理界面");
+		ModelAndView mv = this.getModelAndView();
+		mv.setViewName("/jsp/xunxin/user/volunteer_manager");
+		return mv;
+	}
+	
+
+    /**
+     * 鍚庡彴绯荤粺鑾峰彇鐢ㄦ埛鍒楄〃
+     */
+    @RequestMapping(value=Route.User.USER_LIST,method=RequestMethod.POST)
+    @ResponseBody
+    public Object user_list() {
+        log.info("infoMsg:---鑾峰彇鐢ㄦ埛鍒楄〃寮�濮�");
+        PageData pageData = this.getPageData();
+        try {
+            String phone = pageData.getString("phone");    //鎵嬫満鍙�
+            String nickName = pageData.getString("nickName");  //鏄电О
+            String gender = pageData.getString("gender");  //鎬у埆
+            UserSearchCondition condition = new UserSearchCondition(phone,nickName,gender);
+            List<UserEntity> userList = appUserService.getUserList(condition);
+            
+            PageData pagingPd = getPagingPd(userList);
+            
+            log.info("infoMsg:---鑾峰彇鐢ㄦ埛鍒楄〃缁撴潫");
+            return pagingPd;
+        } catch (Exception e) {
+            log.info("errorMsg:{---鑾峰彇鐢ㄦ埛鍒楄〃澶辫触:" + e.getMessage() + "---}");
+            return null;
+        }
+        
+    }
+    
+    
+    /**
+     * 鍚庡彴绯荤粺鑾峰彇鐢ㄦ埛璇︽儏
+     */
+    @RequestMapping(value=Route.User.USER_VIEW,method=RequestMethod.GET)
+    public ModelAndView user_view() {
+        log.info("infoMsg:---鑾峰彇鐢ㄦ埛璇︽儏寮�濮�");
+        PageData pageData = this.getPageData();
+        ModelAndView mv = new ModelAndView();
+        PageData pd = new PageData<>();
+        try {
+            int userId = Integer.parseInt(pageData.getString("id"));    //鐢ㄦ埛id
+            UserEntity user = appUserService.findById(userId);
+            
+            pd.put("phone", user.getPhone());
+            pd.put("name", user.getName());
+            pd.put("nickName", user.getNickName());
+            pd.put("gender", user.getGender());
+            pd.put("age", user.getAge());
+            pd.put("sexualOrientation", user.getSexualOrientation());
+            pd.put("address", user.getAddress());
+            pd.put("height", user.getHeight());
+            pd.put("profession", user.getProfession());
+            pd.put("trade", user.getTrade());
+            pd.put("position", user.getPosition());
+            pd.put("income", user.getIncome());
+            pd.put("education", user.getEducation());
+            pd.put("williamsCollege", user.getWilliamsCollege());
+            pd.put("relationshipStatus", user.getRelationshipStatus());
+            pd.put("makeFriendWay", user.getMakeFriendWay());
+            
+            pd.put("introduce", user.getIntroduce());
+            pd.put("housingConditions", user.getHousingConditions());
+            pd.put("trafficTools", user.getTrafficTools());
+            pd.put("weight", user.getWeight());
+            pd.put("nation", user.getNation());
+            //鍥界睄
+            if(user.getNationality() != null && !StringUtils.trim(user.getNationality()).equals("")) {
+                String country =  systemEntityService.findCountryById(Integer.parseInt(user.getNationality())).getName_Chinese();
+                if(country != null) {
+                    pd.put("nationality", country);
+                }
+            }
+            //绫嶈疮
+            if(user.getNativePlace() != null && !StringUtils.trim(user.getNativePlace()).equals("")) {
+                String[] addrs = user.getNativePlace().replace("[","").replace("]", "").trim().split(",");
+                String nativePlace = "";
+                for(String addr : addrs) {
+                    nativePlace +=  systemEntityService.findNameByCode(addr).getName();
+                }
+                pd.put("nativePlace", nativePlace);
+            }
+            //鎴风睄
+            if(user.getCensusRegister() != null && !StringUtils.trim(user.getCensusRegister()).equals("")) {
+                String[] censusRegisters = user.getCensusRegister().replace("[","").replace("]", "").trim().split(",");
+                String censusRegister = "";
+                for(String addr : censusRegisters) {
+                    censusRegister +=  systemEntityService.findNameByCode(addr).getName();
+                }
+                pd.put("censusRegister", censusRegister);
+            }
+            pd.put("familyOrder", user.getFamilyOrder());
+            pd.put("haveChild", user.getHaveChild());
+            pd.put("religiousBelief", user.getReligiousBelief());
+            pd.put("constellation", user.getConstellation());
+            pd.put("zodiac", user.getZodiac());
+            pd.put("blood", user.getBlood());
+            
+            mv.setViewName("/jsp/xunxin/user/user_view");
+            mv.addObject("pd", pd);
+            
+            log.info("infoMsg:---鑾峰彇鐢ㄦ埛璇︽儏缁撴潫");
+            return mv;
+        } catch (Exception e) {
+            log.info("errorMsg:{---鑾峰彇鐢ㄦ埛璇︽儏澶辫触:" + e.getMessage() + "---}");
+            return new ModelAndView("error");
+        }
+        
+    }
+	/**
+	 * 跳转支付页面
+	 * @return
+	 */
+	@RequestMapping(value=Route.User.USER_PAY)
+	public ModelAndView user_pay(Integer userId,Model model) {
+		log.info("跳转支付页面");
+		ModelAndView mv = this.getModelAndView();
+		System.out.println(userId);
+		String nmae = appUserService.findUserNameByUserId(userId);
+		model.addAttribute("name", nmae);
+		mv.setViewName("/userPay");
+		return mv;
+	}
+    
+	
+}

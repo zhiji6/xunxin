@@ -1,0 +1,395 @@
+<%@ page language="java" contentType="text/html; charset=UTF-8"
+	pageEncoding="UTF-8"%>
+<%@ include file="/WEB-INF/include/taglib.jsp"%>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<system:header/>
+<!-- jsp文件头和头部 -->
+<script type="text/javascript" charset="utf-8" src="plugins/ueditor/ueditor.config.js"></script>
+<script type="text/javascript" charset="utf-8" src="plugins/ueditor/ueditor.all.js"> </script>
+<script type="text/javascript" charset="utf-8" src="plugins/ueditor/lang/zh-cn/zh-cn.js"></script>
+</head>
+<body class="gray-bg">
+	<div class="wrapper wrapper-content animated fadeInRight">
+		<div class="row">
+			<div class="col-sm-12">
+				<div class="ibox float-e-margins">
+
+					<div class="ibox-content">
+						<form id="ArticleRotationForm" name="ArticleRotationForm" class="form-horizontal" method="post">
+							<input type="hidden" name="HEL_ID" id="HEL_ID" value="${pd.HEL_ID}" />
+							<div class="form-group">
+								<label class="col-sm-2 control-label">请输入您要上传的问题</label>
+								<div class="col-sm-4">
+									<input type="text" id="name" class="form-control required" name="name" style="width:500px;" class="form-control" placeholder="请输入您要编辑的问题，需要替换的部分请用*代替。例:你喜欢*的电影吗？" />
+								</div>
+								
+								<label class="col-sm-2 control-label">请选择板块：</label>
+								<div class="col-sm-2">
+									<select class="form-control" name="sectionName" id="sectionName" value="${pd.sectionName}" 
+						                  ajax--url="/api/qa/full_qa_section_list" ajax--column="ID,TEXT" style="width:140px;">
+						                  <option value="">--选择板块--</option>
+						            </select>
+					            </div>
+							</div>
+							
+							
+							<div class="form-group">
+								<label class="col-sm-2 control-label">请输入您要上传的内容</label>
+								<!-- 加载编辑器的容器 -->  
+								<script id="container" name="content" type="text/plain"> </script>  
+							       
+								<input type="button" value="测试" name="ceshi" onClick="test();"/>  
+							</div>	
+							    
+							<div class="form-group">
+								<label class="col-sm-2 control-label">请输入您的观点</label>
+								<div class="col-sm-2">
+									<input type="text" class="form-control required" id="answer1" name="answer1" style="width:500px;" class="form-control" placeholder="ps:非常喜欢" />
+									<input type="text" class="form-control required" id="answer2" name="answer2" style="width:500px;" class="form-control" placeholder="ps:喜欢" />
+									<input type="text" class="form-control required" id="answer3" name="answer3" style="width:500px;" class="form-control" placeholder="ps:一般" />
+									<input type="text" class="form-control required" id="answer4" name="answer4" style="width:500px;" class="form-control" placeholder="ps:不喜欢" />
+									<input type="text" class="form-control required" id="answer5" name="answer5" style="width:500px;" class="form-control" placeholder="ps:厌恶" />
+								</div>
+							</div>
+							
+							<div class="form-group">
+								<div class="form-group">
+									<div class="col-sm-2 col-sm-offset-3 text-center" style="margin-top:150px">
+										<button id="btn_Save" class="btn btn-primary" type="button" onclick="submitForm();">导入</button>
+										<button id="btn_Cancel" class="btn btn-white" type="button" onclick="goBack();">取消</button>
+									</div>
+								</div>  
+							</div>
+							
+							
+						</form>
+					</div>
+				</div>
+			</div>	
+		</div>
+	</div>
+	
+	<!-- 全局js -->
+    <system:jsFooter/>
+	<!-- 自定义js -->
+	<script type="text/javascript">
+		//表单ID
+			var formId = "#ArticleRotationForm";
+			$(document).ready(function(){
+				changePcode();
+			});
+			var picturePATH = '';
+			var picturePATHS = '';
+			var HEL_PHOTO = $("#HEL_PHOTO").val();
+			var HEL_PHOTO_PHONE = $("#HEL_PHOTO_PHONE").val();
+			if(HEL_PHOTO != null && HEL_PHOTO != ''){
+				$.ajax({
+					type: "POST",
+					url: '<%=basePath%>filesUploads/findByHttpIdOrMasterId',
+					data: {
+						"ID": HEL_PHOTO,
+						"MASTER_ID":HEL_PHOTO
+					},
+					dataType: 'json',
+					async:false,
+					//beforeSend: validateData,
+					cache: false,
+					success: function(data) {
+						picturePATH = data[0].PATH;
+						initFileName = data[0].FILE_NAME;
+					}
+				});
+			}
+			if(HEL_PHOTO_PHONE != null && HEL_PHOTO_PHONE != '' && HEL_PHOTO_PHONE != null && HEL_PHOTO_PHONE != ''){
+				$.ajax({
+					type: "POST",
+					url: '<%=basePath%>filesUploads/findByHttpIdOrMasterId',
+					data: {
+						"ID": HEL_PHOTO_PHONE,
+						"MASTER_ID":HEL_PHOTO_PHONE
+					},
+					dataType: 'json',
+					async:false,
+					//beforeSend: validateData,
+					cache: false,
+					success: function(data) {
+						picturePATHS = data[0].PATH;
+						initFileName = data[0].FILE_NAME;
+					}
+				});
+			}
+	    	//初始化下拉菜单
+	    	$("#ARTICLE_TYPE").createOption();
+	    	$("#HE_AREA").createOption();
+	    	$("#HD_ID").createOption();
+	    	$("#SP_REGISTER_ADDR").createOption();
+	    	//表单提交JS验证
+			$(formId).validate({
+				rules: {
+					PHONENUM: {
+						rangelength: [11, 11],
+						remote: {
+							url: '/hospitalExpertTmp/selectPhone',
+							type: 'POST',
+							dataType: 'JSON',
+							data: {
+								'HEL_PHOTO': function() {
+									return $('#PHONENUM').val();
+								},
+								'ID' : function(){
+									return $('#HEL_ID').val();
+								}
+							}
+						}
+					}
+				},
+				messages: {
+					PHONENUM: "输入的手机号格式不正确，或该手机号已被注册",
+				}
+			});
+		//表单提交
+	    function submitForm(){
+	        var id = $('#HEL_ID').val();
+	        var HEL_PHOTO = $("#HEL_PHOTO").val();
+	        if(HEL_PHOTO != null && HEL_PHOTO != ''){
+	           	$.ajax({
+					type: "POST",
+					url: '<%=basePath%>hospitalExpertTmp/checkKeyWords?tm=' +  new Date().getTime(),
+					data: $(formId).serialize(),
+					dataType: 'json',
+					//beforeSend: validateData,
+					cache: false,
+					success: function(data) {
+						if (data.msg == 'success') {
+				        	var action = "";
+					    	if(id == ""){
+					    		action = "hospitalExpertTmp/saveAdd";
+					    	}else{
+					    		action = "hospitalExpertTmp/saveEdit";
+					    	}
+					    	$(formId).attr("action", action);
+					    	$(formId).submit();
+						} else {
+							layer.msg(data.error_tip);
+						}
+					}
+				});
+	        	
+	        } else{
+	        	layer.msg("无用户头像不能保存");
+	        }
+	    	
+	    }
+		/* 二级联动 */
+	    function changePcode(){
+    		var addr=$("#HE_AREA").val();
+    		$("#caa_pcode").createOptions({"caa_pcode":addr});
+    	};
+	    //返回到列表页面 
+		function goBack(){
+			this.location.href="<%=basePath%>hospitalExpertTmp/toLists";
+		}
+		var IDSAndPid=[];
+		var ids;
+		var MASTER_ID=HEL_PHOTO;//master_id(参数是举例，请根据实际传参)
+		var initFileName=""//初始化照片名(参数是举例，请根据实际传参)
+		var initFilePath="D:\\\\20170222\\d8ed7fbd4a9b445cb446f7d727579eb2.jpg"//初始化照片路径(参数是举例，请根据实际传参)
+		var initFileID= "d8ed7fbd4a9b445cb446f7d727579eb2"//初始化照片id，如果多的话可设置为数组(参数是举例，请根据实际传参)
+	    $("#inp").fileinput({
+	    	language: 'zh', //设置语言
+	    	browseClass: "btn btn-primary btn-block",
+	        showCaption: false,//是否在选择按钮旁边显示文件名
+	    	showUpload:false,//是否展示上传按钮
+	    	showRemove:true,//是否展示移除按钮
+	    	//showClose:false,//是否展示关闭按钮
+
+	    	//showDelete: false,//是否显示删除图标
+	    	//showZoom: false//是否显示预览
+	    	showUploadedThumbs:false,//上传完成后是否显示缩略图
+	    	uploadUrl:'/filesUploads/fileUpd',//上传的url
+	    	uploadAsync: true,//异步支持
+	    	//previewFileType: ["text","image"],//文件類型
+	    	allowedFileExtensions: ["gif", "jpeg", "tiff", "bmp",'jpg','png','psd','svg'],//允许上传的文件扩展名
+	    	overwriteInitial: true,
+	        initialPreviewAsData: true,
+	    	initialPreview: [//初始化预览
+	    		picturePATH
+	        ],
+	        initialPreviewConfig: [//初始化设置 {标题 宽度 删除的url 是否顯示刪除 顺序  扩展字符}
+	            {caption: initFileName, width: "120px",url:'/filesUploads/delete',showDelete: true ,key:1,extra: {id: '20e3a27be3d84329833c200772d21a0b'}}        
+	        ],
+	        uploadExtraData: {//上传时附加的参数额外的参数，注意，此处jquery无效。
+	        	"IDS": MASTER_ID,
+	            "MASTER_ID":MASTER_ID
+	        },
+	        //maxFileCount: 10, //表示允许同时上传的最大文件个数
+	        //showCaption: false,//是否显示标题   
+	        //dropZoneEnabled: false//是否显示拖拽区域
+	        //minImageWidth: 50, //图片的最小宽度
+	        //minImageHeight: 50,//图片的最小高度
+	        //maxImageWidth: 1000,//图片的最大宽度
+	        //maxImageHeight: 1000,//图片的最大高度
+	        //maxFileSize: 0,//单位为kb，如果为0表示不限制文件大小
+	        //minFileCount: 0,
+	        //enctype: 'multipart/form-data',
+	        //validateInitialCount:true,
+	    }).on('fileselect', function(event, numFiles, label) {//选择文件时
+	    	$(this).fileinput("upload");//选择完文件后立即上传
+	    })
+	    .on('fileuploaded', function(event, data, previewId, index) {//文件上传成功后
+			var IDS=JSON.parse(data.jqXHR.responseText)[0].id;
+			var path=JSON.parse(data.jqXHR.responseText)[0].path;
+			picturePATH = path;
+			/* $("#I_IDY").val(IDS);
+			console.log(IDS); */
+			$("#HEL_PHOTO").val(IDS);
+	 	})
+	 	
+		.on('filedeleted', function(event, id) {//删除预加载的文件
+	        console.log("has filedeleted")
+	        $("#HEL_PHOTO").val("");
+		})
+		.on('filecleared', function(event){ //清空的事件
+			$("#HEL_PHOTO").val("");
+		})
+		.on('fileremoved', function(event, id) {
+			$("#HEL_PHOTO").val("");
+		})
+		
+		
+		
+		var MASTER_IDS=HEL_PHOTO_PHONE;
+		var initFileNames=""
+	    $("#inpp").fileinput({
+	    	language: 'zh', //设置语言
+	    	browseClass: "btn btn-primary btn-block",
+	        showCaption: false,//是否在选择按钮旁边显示文件名
+	    	showUpload:false,//是否展示上传按钮
+	    	showRemove:true,//是否展示移除按钮
+	    	//showClose:false,//是否展示关闭按钮
+
+	    	//showDelete: false,//是否显示删除图标
+	    	//showZoom: false//是否显示预览
+	    	showUploadedThumbs:false,//上传完成后是否显示缩略图
+	    	uploadUrl:'/filesUploads/fileUpd',//上传的url
+	    	uploadAsync: true,//异步支持
+	    	//previewFileType: ["text","image"],//文件類型
+	    	allowedFileExtensions: ["gif", "jpeg", "tiff", "bmp",'jpg','png','psd','svg'],//允许上传的文件扩展名
+	    	overwriteInitial: true,
+	        initialPreviewAsData: true,
+	    	initialPreview: [//初始化预览
+	    		picturePATHS
+	        ],
+	        initialPreviewConfig: [//初始化设置 {标题 宽度 删除的url 是否顯示刪除 顺序  扩展字符}
+	            {caption: initFileName, width: "120px",url:'/filesUploads/delete',showDelete: true ,key:1,extra: {id: '20e3a27be3d84329833c200772d21a0b'}}        
+	        ],
+	        uploadExtraData: {//上传时附加的参数额外的参数，注意，此处jquery无效。
+	        	"IDS": MASTER_IDS,
+	            "MASTER_ID":MASTER_IDS
+	        },
+	        //maxFileCount: 10, //表示允许同时上传的最大文件个数
+	        //showCaption: false,//是否显示标题   
+	        //dropZoneEnabled: false//是否显示拖拽区域
+	        //minImageWidth: 50, //图片的最小宽度
+	        //minImageHeight: 50,//图片的最小高度
+	        //maxImageWidth: 1000,//图片的最大宽度
+	        //maxImageHeight: 1000,//图片的最大高度
+	        //maxFileSize: 0,//单位为kb，如果为0表示不限制文件大小
+	        //minFileCount: 0,
+	        //enctype: 'multipart/form-data',
+	        //validateInitialCount:true,
+	    }).on('fileselect', function(event, numFiles, label) {//选择文件时
+	    	$(this).fileinput("upload");//选择完文件后立即上传
+	    })
+	    .on('fileuploaded', function(event, data, previewId, index) {//文件上传成功后
+			var IDS=JSON.parse(data.jqXHR.responseText)[0].id;
+			var path=JSON.parse(data.jqXHR.responseText)[0].path;
+			picturePATHS = path;
+			/* $("#I_IDY").val(IDS);
+			console.log(IDS); */
+			$("#HEL_PHOTO_PHONE").val(IDS);
+	 	})
+	 	
+		.on('filedeleted', function(event, id) {//删除预加载的文件
+	        console.log("has filedeleted")
+	        $("#HEL_PHOTO_PHONE").val("");
+		})
+		.on('filecleared', function(event){ //清空的事件
+			$("#HEL_PHOTO_PHONE").val("");
+		})
+		.on('fileremoved', function(event, id) {
+			$("#HEL_PHOTO_PHONE").val("");
+		})
+		
+	</script>
+	
+	<script type="text/javascript">  
+       //<!-- 实例化编辑器 -->  
+        var editor = UE.getEditor('container',{    
+	        //这里可以选择自己需要的工具按钮名称,此处仅选择如下五个    
+	        toolbars:[['link', //超链接  
+	            'unlink', //取消链接  
+	            '|',  
+	            'forecolor', //字体颜色  
+	            'backcolor', //背景色  
+	            'fontfamily', //字体  
+	            'fontsize', //字号          
+	            '|',        
+	            'bold', //加粗  
+	            'italic', //斜体  
+	            'underline', //下划线  
+	            'strikethrough', //删除线  
+	            '|',  
+	            'formatmatch', //格式刷  
+	            'removeformat', //清除格式  
+	            '|',  
+	            'insertorderedlist', //有序列表  
+	            'insertunorderedlist', //无序列表  
+	            '|',  
+	            'inserttable', //插入表格  
+	            'paragraph', //段落格式  
+	            'simpleupload', //单图上传  
+	            'imagecenter', //居中  
+	            'attachment', //附件  
+	              
+	            '|',  
+	            'justifyleft', //居左对齐  
+	            'justifycenter', //居中对齐  
+	            'horizontal', //分隔线  
+	            '|',  
+	            'blockquote', //引用  
+	            'insertcode', //代码语言  
+	              
+	            '|',  
+	            'source', //源代码  
+	            'preview', //预览  
+	            'fullscreen', //全屏  
+	            ]],    
+	        //focus时自动清空初始化时的内容    
+	        autoClearinitialContent:true,    
+	        //关闭字数统计    
+	        wordCount:false,    
+	        //关闭elementPath    
+	        elementPathEnabled:false,    
+	        //默认的编辑区域高度    
+	        initialFrameHeight:300    
+	        //更多其他参数，请参考ueditor.config.js中的配置项    
+	    });    
+         
+       function test(){  
+           //获取html内容，返回: <p>hello</p>  
+           var html = ue.getContent();  
+           //获取纯文本内容，返回: hello  
+           var txt = ue.getContentTxt();  
+             
+           alert(html);  
+           alert(txt);  
+       }  
+    </script>  
+	
+	
+	
+</body>
+</html>

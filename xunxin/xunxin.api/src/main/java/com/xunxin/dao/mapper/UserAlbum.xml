@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"   
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.xunxin.dao.app.user.UserAlbumDao">
+	
+	<select id="findByUserId" parameterType="java.lang.Integer" resultType="com.xunxin.vo.user.UserAlbum">
+		SELECT
+			a.id,a.name,a.url,a.userId,a.createTime
+		FROM
+			xunxin_user_album a
+		WHERE
+			a.userId = #{userId}
+	</select>
+
+	<insert id="savePhoto" parameterType="com.xunxin.vo.user.UserAlbum">
+		INSERT INTO xunxin_user_album (
+			userId,
+			name,
+			url,
+			createTime
+		)
+		VALUES
+			(
+				#{userId},
+				#{name},
+				#{url},
+				NOW()
+			)
+	</insert>
+
+    <delete id="delete_album_information" parameterType="java.lang.Integer">
+        DELETE FROM xunxin_user_album
+		WHERE userId=#{userId}
+		<if test=" photoId != null and photoId != '' ">
+		  AND id=#{photoId}
+		</if>
+    </delete>
+
+    <delete id="removeAll" parameterType="java.lang.Integer">
+        DELETE FROM xunxin_user_album WHERE userId = #{userId}
+    </delete>
+
+
+</mapper>

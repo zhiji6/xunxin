@@ -1,0 +1,55 @@
+package com.xunxin.controller.app.quartz;
+
+import java.util.List;
+
+import org.apache.log4j.Logger;
+import org.quartz.Job;
+import org.quartz.JobExecutionContext;
+import org.quartz.JobExecutionException;
+import org.springframework.beans.factory.annotation.Autowired;
+
+import com.alibaba.fastjson.JSONObject;
+import com.xunxin.dao.app.user.AppUserDao;
+import com.xunxin.service.app.AppUserService;
+import com.xunxin.util.app.server.example.api.impl.EasemobIMUsers;
+import com.xunxin.vo.user.UserEntity;
+
+public class UserOnlineJob implements Job{
+
+	@Autowired
+	private AppUserService appUserService;
+	@Autowired
+	private AppUserDao appUserDao;
+	private static final Logger log = Logger.getLogger(UserOnlineJob.class);
+	private  EasemobIMUsers easemobIMUsers = new EasemobIMUsers();
+	@Override
+	public void execute(JobExecutionContext context) throws JobExecutionException {
+		log.info("infoMsg:--- 用户Online设置");
+		List<UserEntity> list = appUserDao.findAll();
+		for (UserEntity userEntity : list) {
+			if(userEntity.getPhone() != null && userEntity.getPhone().length()>0){
+				Object result = easemobIMUsers.getIMUserStatus(userEntity.getPhone());
+				if(result == null){
+					continue;
+				}
+				JSONObject object = JSONObject.parseObject(result.toString());
+				String string = object.getString("data");
+				if(string == null || string.length() <1){
+					continue;
+				}
+				JSONObject parseObject = JSONObject.parseObject(string);
+				String status = parseObject.getString(userEntity.getPhone());
+				if(status == null || status.length() <1){
+					continue;
+				}
+				if(status != null && status.equals("online")){
+					appUserService.updateIsLogin(userEntity.getUid(),0);
+				}else{
+					appUserService.updateIsLogin(userEntity.getUid(),1);
+				}
+			}
+
+		}
+		log.info("infoMsg:--- 用户Online设置结束");
+	}
+}

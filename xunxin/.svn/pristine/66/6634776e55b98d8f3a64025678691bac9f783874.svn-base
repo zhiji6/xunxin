@@ -1,0 +1,70 @@
+package com.xunxin.service.app.qa;
+
+import java.util.Date;
+
+import org.apache.log4j.Logger;
+import org.springframework.data.mongodb.core.query.Criteria;
+import org.springframework.data.mongodb.core.query.Query;
+import org.springframework.data.mongodb.core.query.Update;
+import org.springframework.stereotype.Repository;
+
+import com.xunxin.dao.impl.CommentTopDaoImpl;
+import com.xunxin.vo.qa.CommentTop;
+import com.xunxin.vo.qa.CommentVO;
+import com.xunxin.vo.qa.GiveUpVo;
+
+
+@Repository
+public class CommentTopService extends CommentTopDaoImpl{
+
+	private static final Logger logger = Logger.getLogger(CommentTopService.class);
+
+	public void saveOrupdate(String questionId, Integer userId, String commentId, Integer isTop) {
+		Query query = new Query();
+		query.addCriteria(Criteria.where("commentId").is(commentId));
+		query.addCriteria(Criteria.where("isDelete").is(false));
+		query.addCriteria(Criteria.where("userId").is(userId));
+		if(questionId != null && !"".equals(questionId)){
+			query.addCriteria(Criteria.where("questionId").is(questionId));
+		}
+		
+		CommentTop findOneByQuery = findOneByQuery(query);
+		if(findOneByQuery != null){
+			Update update = Update.update("giveUP", isTop);
+			update.set("updateTime", new Date());
+			updateFirst(query, update);
+		}else{
+			CommentTop vo = new CommentTop();
+			vo.setCommentId(commentId);
+			vo.setCreateTime(new Date());
+			vo.setIsDelete(false);
+			vo.setIsTop(isTop);
+			vo.setUserId(userId);
+			vo.setQuestionId(questionId);
+			insert(vo);
+		}
+	}
+	//是否置顶
+	public void isTop(CommentVO comment, Integer userId) {
+		Query query = new Query();
+		query.addCriteria(Criteria.where("commentId").is(comment.getId()));
+		query.addCriteria(Criteria.where("isDelete").is(false));
+		query.addCriteria(Criteria.where("userId").is(userId));
+		query.addCriteria(Criteria.where("isTop").is(0));
+		CommentTop byQuery = findOneByQuery(query);
+		if(byQuery != null){
+			comment.setStatus("Y");
+		}else{
+			comment.setStatus("N");
+		}
+	}
+	//查询置顶数量
+	public void topNum(CommentVO comment) {
+		Query query = new Query();
+		query.addCriteria(Criteria.where("commentId").is(comment.getId()));
+		query.addCriteria(Criteria.where("isDelete").is(false));
+		query.addCriteria(Criteria.where("isTop").is(0));
+		Integer count = findCountByQuery(query);
+		comment.setTopNum(count);
+	}
+}

@@ -1,0 +1,298 @@
+package com.xunxin.controller.app.square;
+
+import java.awt.image.BufferedImage;
+import java.io.InputStream;
+import java.net.URL;
+import java.util.ArrayList;
+
+import java.util.List;
+
+import javax.imageio.ImageIO;
+
+import org.apache.log4j.Logger;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.domain.Sort.Direction;
+import org.springframework.data.domain.Sort.Order;
+import org.springframework.data.mongodb.core.query.Criteria;
+import org.springframework.data.mongodb.core.query.Query;
+import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.ResponseBody;
+
+import com.alibaba.fastjson.JSON;
+import com.xunxin.controller.system.BaseController;
+import com.xunxin.service.AdminService;
+import com.xunxin.service.app.AppUserService;
+import com.xunxin.service.app.HtmlHelper;
+import com.xunxin.service.app.square.ExposureCommentRecordService;
+import com.xunxin.service.app.square.ExposureCommentThumbRecordService;
+import com.xunxin.service.app.square.ExposureService;
+import com.xunxin.vo.square.ExposureCommentRecord;
+import com.xunxin.vo.square.ExposureCommentThumbRecord;
+import com.xunxin.vo.square.XunXinExposure;
+import com.xunxin.vo.sys.PageData;
+import com.xunxin.vo.user.UserEntity;
+import com.xunxin.web.api.bean.Response;
+import com.xunxin.web.api.bean.Router;
+
+/**
+ * Copyright © 2017 noseparte(Libra) © Like the wind, like rain
+ * @Author Noseparte
+ * @Compile 2017年11月28日 -- 下午2:14:42
+ * @Version 1.0
+ * @Description	        曝光栏
+ */
+@Controller
+@RequestMapping(value=Router.PATH+Router.Exposure.PATH)
+public class ExposureController extends BaseController {
+
+	private final static Logger log = Logger.getLogger(ExposureController.class); 
+	
+	@Autowired
+	private ExposureService exposureService;
+	@Autowired
+	private ExposureCommentRecordService exposureCommentRecordService;
+	@Autowired
+	private ExposureCommentThumbRecordService exposureCommentThumbRecordService;
+	@Autowired
+	private AppUserService appUserService;
+	
+	/**
+	 * 获取曝光栏列表
+	 * @return
+	 */
+	@RequestMapping(value=Router.Exposure.SHOW_EXPOSURE_LIST,method=RequestMethod.POST)
+	@ResponseBody
+	public Response show_exposure_list(@RequestParam("pageNo") int pageNo,@RequestParam("pageSize") int pageSize) {
+		log.info("infoMsg:--- 获取曝光栏列表开始");
+		Response reponse = this.getReponse();
+		List<PageData> pdList = new ArrayList<>();
+		try {
+			Query query = new Query();  
+			query.with(new Sort(new Order(Direction.DESC, "createTime")));
+			// 分页
+            query.skip((pageNo - 1) * 10).limit(pageSize);
+			List<XunXinExposure> exposureList = exposureService.find(query);
+			for(XunXinExposure ex : exposureList) {
+				PageData pd = new PageData<>();
+				pd.put("exposureId", ex.getId());
+				pd.put("exposureTitle", ex.getExposureTitle());
+				pd.put("exposureContent", ex.getExposureContent());
+				pd.put("exposureTime", ex.getCreateTime());
+				pdList.add(pd);
+			}
+			log.info("infoMsg:--- 获取曝光栏列表结束");
+			return reponse.success(pdList);
+		} catch (Exception e) {
+			log.error("errorMsg:--- 获取曝光栏列表失败" + e.getMessage());
+			return reponse.failure(e.getMessage());
+		}
+	}
+	
+	/**
+	 * 获取曝光记录详情
+	 * 
+	 * @param exposureId
+	 * @return
+	 */
+	@RequestMapping(value=Router.Exposure.SHOW_EXPOSURE_DETAIL,method=RequestMethod.POST)
+	@ResponseBody
+	public Response show_exposure_detail(@RequestParam("exposureId") String exposureId,@RequestParam("userId") int userId) {
+		log.info("infoMsg:--- 获取曝光栏列表开始");
+		Response reponse = this.getReponse();
+		PageData pd = new PageData<>();
+		List<PageData> pdList = new ArrayList<>();
+		try {
+			XunXinExposure ex = exposureService.findOneById(exposureId);
+			pd.put("nickName", "循心官方");
+			pd.put("exposureTitle", ex.getExposureTitle());
+			pd.put("exposureContent", ex.getExposureContent());
+			List<PageData> exposureUrls = new ArrayList<>();
+			String[] images = ex.getUrls().split(",");
+			for(String img : images) {
+			    PageData imgPd = new PageData<>();
+			    imgPd.put("imgUrl", img.trim());
+			    InputStream murl = new URL(img.trim()).openStream();
+			    BufferedImage sourceImg = ImageIO.read(murl);   
+			    imgPd.put("imgWidth", sourceImg.getWidth());    // 源图宽度
+			    imgPd.put("imgHeight", sourceImg.getHeight()); // 源图高度
+			    exposureUrls.add(imgPd);
+			}
+			pd.put("exposureUrls", exposureUrls);
+			pd.put("exposureTime", ex.getCreateTime());
+			
+			Query commentQuery = new Query();  
+			commentQuery.addCriteria(Criteria.where("exposureId").is(exposureId));
+			commentQuery.with(new Sort(new Order(Direction.DESC, "createTime")));
+            List<ExposureCommentRecord> commentList = exposureCommentRecordService.find(commentQuery);
+            for(ExposureCommentRecord record : commentList) {
+                PageData commentPd = new PageData<>();
+                commentPd.put("commentId", record.getId());
+                commentPd.put("content", record.getContent());
+                commentPd.put("thumbCount", record.getThumbCount());
+                commentPd.put("exposureTime", record.getCreateTime());
+                UserEntity user = appUserService.findById(userId);
+                commentPd.put("nickName", user.getNickName());
+                commentPd.put("gender", user.getGender());
+                Query query = new Query()
+                        .addCriteria(Criteria.where("exposureId").is(exposureId))
+                        .addCriteria(Criteria.where("userId").is(userId))
+                        .addCriteria(Criteria.where("commentId").is(record.getId()));
+                ExposureCommentThumbRecord thumbRecord = exposureCommentThumbRecordService.findOneByQuery(query);
+                if(thumbRecord != null) {
+                    commentPd.put("thumbState", 0);
+                }else {
+                    commentPd.put("thumbState", 1);
+                }
+                pdList.add(commentPd);
+            }
+			pd.put("commentList", pdList);
+			log.info("infoMsg:--- 获取曝光栏列表结束");
+			return reponse.success(pd);
+		} catch (Exception e) {
+			log.error("errorMsg:{--- 获取曝光栏列表失败" + e.getMessage() + "---}");
+			return reponse.failure(e.getMessage());
+		}
+	}
+	
+	/**
+	 * 曝光记录评论列表
+	 * @param exposureId
+	 * @return
+	 */
+	@RequestMapping(value=Router.Exposure.COMMENTED_EXPOSURE_LIST,method=RequestMethod.POST)
+	@ResponseBody
+	public Response commented_exposure_list(@RequestParam("exposureId") String exposureId) {
+		log.info("infoMsg:--- 获取曝光记录评论列表开始");
+		Response reponse = this.getReponse();
+		List<PageData> pdList = new ArrayList<>();
+		try {
+			Query query = new Query();  
+			query.addCriteria(Criteria.where("exposureId").is(exposureId));
+			query.with(new Sort(new Order(Direction.DESC, "createTime")));
+			List<ExposureCommentRecord> recordList = exposureCommentRecordService.find(query);
+			for(ExposureCommentRecord record : recordList) {
+				PageData pd = new PageData<>();
+				pd.put("content", record.getContent());
+				pd.put("thumbCount", record.getCreateTime());
+				pd.put("exposureTime", record.getCreateTime());
+				pdList.add(pd);
+			}
+			log.info("infoMsg:--- 获取曝光记录评论列表结束");
+			return reponse.success(pdList);
+		} catch (Exception e) {
+			log.error("errorMsg:--- 获取曝光记录评论列表失败" + e.getMessage());
+			return reponse.failure(e.getMessage());
+		}
+	}
+	
+	/**
+	 * 曝光记录评论点赞
+	 * 
+	 * @param exposureId	曝光记录id
+	 * @param userId		用户ID
+	 * @param commentId		评论id
+	 * @return
+	 */
+	@RequestMapping(value=Router.Exposure.THUMB_COMMENTED_EXPOSURE,method=RequestMethod.POST)
+	@ResponseBody
+	public Response thumb_commented_exposure(@RequestParam("exposureId") String exposureId,
+			@RequestParam("userId") int userId,@RequestParam("commentId") String commentId) {
+		log.info("infoMsg:--- 曝光记录评论点赞开始");
+		Response reponse = this.getReponse();
+		try {
+			ExposureCommentThumbRecord record = new ExposureCommentThumbRecord();
+			record.setCommentId(commentId);
+			record.setExposureId(exposureId);
+			record.setUserId(userId);
+			record.setThumbState(UserEntity.UNUSUAL);
+			exposureCommentThumbRecordService.save(record);
+			log.info("infoMsg:--- 曝光记录评论点赞结束");
+			return reponse.success();
+		} catch (Exception e) {
+			log.error("errorMsg:{--- 曝光记录评论点赞失败:" + e  .getMessage() + "---}");
+			return reponse.failure(e.getMessage());
+		}
+	}
+	
+	/**
+	 * 曝光记录评论取消点赞
+	 * 
+	 * @param exposureId	曝光记录id
+	 * @param userId		用户ID
+	 * @param commentId		评论id
+	 * @return
+	 */
+	@RequestMapping(value=Router.Exposure.THUMB_CANCEL_COMMENTED_EXPOSURE,method=RequestMethod.POST)
+	@ResponseBody
+	public Response thumb_cancel_commented_exposure(@RequestParam("exposureId") String exposureId,
+	        @RequestParam("userId") int userId,@RequestParam("commentId") String commentId) {
+	    log.info("infoMsg:--- 曝光记录评论取消点赞开始");
+	    Response reponse = this.getReponse();
+	    try {
+	        Query query = new Query()
+	                .addCriteria(Criteria.where("exposureId").is(exposureId))
+	                .addCriteria(Criteria.where("userId").is(userId))
+	                .addCriteria(Criteria.where("commentId").is(commentId));
+	        ExposureCommentThumbRecord record = exposureCommentThumbRecordService.findOneByQuery(query);
+	        exposureCommentThumbRecordService.remove(record);
+	        log.info("infoMsg:--- 曝光记录评论取消点赞结束");
+	        return reponse.success();
+	    } catch (Exception e) {
+	        log.error("errorMsg:{--- 曝光记录评论取消点赞失败:" + e  .getMessage() + "---}");
+	        return reponse.failure(e.getMessage());
+	    }
+	}
+	
+	
+	/**
+	 * 曝光记录评论
+	 * 
+	 * @param exposureId	曝光记录id
+	 * @param userId		用户ID
+	 * @param commentId		评论id
+	 * @return
+	 */
+	@RequestMapping(value=Router.Exposure.INCREASE_EXPOSURE,method=RequestMethod.POST)
+	@ResponseBody
+	public Response increase_exposure(@RequestParam("content") String content,@RequestParam("exposureId") String exposureId,
+	        @RequestParam("userId") int userId) {
+	    log.info("infoMsg:--- 曝光记录评论点赞开始");
+	    Response reponse = this.getReponse();
+	    try {
+            ExposureCommentRecord record = new ExposureCommentRecord();
+            record.setContent(content);
+            record.setExposureId(exposureId);
+            record.setThumbCount(0);
+            record.setUserId(userId);
+            exposureCommentRecordService.save(record);
+	        log.info("infoMsg:--- 曝光记录评论点赞结束");
+	        return reponse.success();
+	    } catch (Exception e) {
+	        log.error("errorMsg:--- 曝光记录评论点赞失败" + e.getMessage());
+	        return reponse.failure(e.getMessage());
+	    }
+	}
+	
+	
+	public static void main(String[] args) {
+//	    String str = "该用户存在诈骗嫌疑,[图片],[图片],[图片]";
+//	    String[] HTMLTag = str.split(",");
+//        String jsonContent = JSON.toJSONString(HTMLTag);
+//        String finalContent = jsonContent.replaceAll("\r\n", "");
+//        System.out.println(finalContent);
+    }
+	
+	
+	
+	
+	
+	
+	
+	
+	
+}

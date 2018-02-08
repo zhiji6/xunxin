@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"   
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.xunxin.dao.app.user.UserInfoDataDao">
+
+	<select id="findOne" parameterType="java.lang.String" resultType="com.xunxin.vo.user.UserInfoData">
+		select m.id,m.openId,m.openType,m.openState,m.openRemark,m.bindTime,m.userId
+		from xunxin_user_info_data m
+		where m.phone=#{phone}
+	</select>
+
+	<select id="findByUserId" parameterType="java.lang.Integer" resultType="com.xunxin.vo.user.UserInfoData">
+		select m.id,m.openId,m.openType,m.openState,m.openRemark,m.bindTime,m.userId
+		from xunxin_user_info_data m
+		where m.userId=#{userId}
+	</select>
+	
+	<select id="findBytoken" parameterType="java.lang.String" resultType="com.xunxin.vo.user.UserInfoData">
+		select m.id,m.openId,m.openType,m.openState,m.openRemark,m.bindTime,m.userId
+		from xunxin_user_info_data m
+		where 
+		<if test=" openId != null and openId != '' ">
+			m.openId = #{openId} 
+		</if>
+		<if test=" openId != null and openId != '' ">
+			and m.openType = #{openType} 
+		</if>
+		
+	</select>
+	
+	<insert id="saveInfo" parameterType="com.xunxin.vo.condition.UserInfoCondition">
+		INSERT INTO xunxin_user_info_data (
+			openId,
+			openType,
+			openState,
+			openRemark,
+			bindTime,
+			userId
+		)
+		VALUES
+			(
+			#{openId},
+			#{openType}, 
+			#{openState}, 
+			#{openRemark}, 
+			now(), 
+			#{userId}
+			 )
+	</insert>
+	
+	<insert id="save" parameterType="com.xunxin.vo.user.UserInfoData">
+		INSERT INTO xunxin_user_info_data (
+			openId,
+			openType,
+			openState,
+			openRemark,
+			bindTime,
+			userId
+		)
+		VALUES
+			(
+			#{openId},
+			#{openType}, 
+			#{openState}, 
+			#{openRemark}, 
+			now(), 
+			#{userId}
+			 )
+	</insert>
+
+	<update id="update">
+	
+	</update>
+
+
+    <delete id="removeAll" parameterType="java.lang.Integer">
+        DELETE FROM xunxin_user_info_data WHERE userId = #{userId}
+    </delete>
+
+
+
+</mapper>

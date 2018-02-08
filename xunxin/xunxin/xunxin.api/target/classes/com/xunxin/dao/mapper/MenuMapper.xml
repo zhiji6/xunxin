@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"   
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.xunxin.dao.admin.MenuDao">
+
+	<select id="findAll" resultType="com.xunxin.vo.admin.Menu">
+		select m.id,m.name,m.url,m.parent_id,m.icon,m.order
+		from xunxin_admin_menu m 
+		order by m.order ASC	
+	</select>
+	
+	<select id="getAll" resultType="com.xunxin.vo.admin.Menu">
+		select m.id,m.name,m.url,m.parent_id,m.icon,m.order
+		from xunxin_admin_menu m 
+		where m.isVisible = 0 
+			and m.order &lt; 10
+		order by m.order ASC	
+	</select>
+	
+	<select id="findByParentId" parameterType="java.lang.String" resultType="com.xunxin.vo.admin.Menu">
+		select m.id,m.name,m.url,m.parent_id,m.icon,m.order
+		from xunxin_admin_menu m 
+		where m.isVisible = 0
+		<if test="parentId != null and parentId != '' ">
+			and m.parent_id=#{parentId}
+		</if> 
+		order by m.order ASC	
+	</select>
+
+</mapper>

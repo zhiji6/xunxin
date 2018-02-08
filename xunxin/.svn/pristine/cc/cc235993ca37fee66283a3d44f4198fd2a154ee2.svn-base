@@ -1,0 +1,31 @@
+package com.xunxin.service.app.user;
+
+import org.springframework.stereotype.Repository;
+
+import com.xunxin.dao.impl.app.DynamicThumbRecordDaoImpl;
+import com.xunxin.vo.qa.QuestionVO;
+import com.xunxin.vo.user.UserDynamicRecordVO;
+
+/**
+ * 
+ * Copyright © 2017 Xunxin Network Technology Co. Ltd.
+ *
+ * @Author Noseparte
+ * @Compile 2018年1月7日 -- 下午3:15:45
+ * @Version 1.0
+ * @Description     动态点赞记录
+ */
+@Repository
+public class DynamicThumbRecordService extends DynamicThumbRecordDaoImpl{
+
+	//添加动态
+	public void saveUserDynamic(Integer userId, String resoure, String content, String img) {
+		UserDynamicRecordVO vo = new UserDynamicRecordVO();
+		vo.setDynamicUrls(img);
+		vo.setDynamicSource(resoure);
+		vo.setContent(content);
+		vo.setUserId(userId);
+		vo.setThumbCount(0);
+	}
+
+}

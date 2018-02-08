@@ -1,0 +1,211 @@
+package com.xunxin.service.app.qa;
+
+import java.util.Date;
+import java.util.List;
+
+import org.apache.commons.lang3.StringEscapeUtils;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.shiro.SecurityUtils;
+import org.jsoup.nodes.Document;
+import org.jsoup.select.Elements;
+import org.mongodb.framework.util.Pagination;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.domain.Sort.Direction;
+import org.springframework.data.domain.Sort.Order;
+import org.springframework.data.mongodb.core.query.Criteria;
+import org.springframework.data.mongodb.core.query.Query;
+import org.springframework.data.mongodb.core.query.Update;
+import org.springframework.stereotype.Repository;
+
+import com.github.pagehelper.PageHelper;
+import com.xunxin.controller.app.message.MessTypeFactory;
+import com.xunxin.dao.impl.QuestionDaoImpl;
+import com.xunxin.service.app.AppUserService;
+import com.xunxin.service.app.IMNewsService;
+import com.xunxin.service.app.QASectionService;
+import com.xunxin.service.app.XunxinAuditInformationRecordService;
+import com.xunxin.util.Constant;
+import com.xunxin.util.page.PaginationContext;
+import com.xunxin.vo.admin.Admin;
+import com.xunxin.vo.qa.QuestionVO;
+
+@Repository
+public class QuestionService extends QuestionDaoImpl{
+
+	@Autowired
+	private AppUserService appUserService;
+	@Autowired
+	private QASectionService qASectionService;
+	@Autowired
+	private XunxinAuditInformationRecordService xunxinAuditInformationRecordService;
+	@Autowired
+	private IMNewsService iMNewsService;
+	//查询审核列表
+	public Pagination<QuestionVO> findPageList(QuestionVO questionVO,Integer type) {
+		PageHelper.startPage(PaginationContext.getPageNum(), PaginationContext.getPageSize());
+		Query query = new Query();
+		query.addCriteria(Criteria.where("isDelete").is(false));
+		if(type != null){
+			query.addCriteria(Criteria.where("type").is(type));
+		}
+		if(questionVO != null && questionVO.getIndexNo() != null && questionVO.getIndexNo().length()>0){
+			query.addCriteria(Criteria.where("indexNo").regex(StringEscapeUtils.unescapeJava(".*" +questionVO.getIndexNo()+ ".*")));
+		}
+		query.addCriteria(Criteria.where("status").ne(1));
+		query.with(new Sort(new Order(Direction.DESC, "createTime")));
+		Pagination<QuestionVO> pagination=findPaginationByQuery(query, PaginationContext.getPageNum(),PaginationContext.getPageSize());
+		for (QuestionVO quesVo : pagination.getDatas()) {
+			if(quesVo != null && (Integer)quesVo.getUserID() != null){
+				quesVo.setNickName(appUserService.findUserNameByUserId(quesVo.getUserID()));
+				quesVo.setTypeName(qASectionService.findTypeName(quesVo.getType()));
+			}
+		}
+		return pagination;
+	}
+	//审核查询下一题
+	public QuestionVO findOneById(String id, Integer type, String notId) {
+		Query query = new Query();
+		query.addCriteria(Criteria.where("isDelete").is(false));
+		if(type != null && notId != null){
+			query.addCriteria(Criteria.where("type").is(type));
+			query.addCriteria(Criteria.where("id").ne(notId));
+		}else{
+			query.addCriteria(Criteria.where("id").is(id));
+		}
+		query.addCriteria(Criteria.where("status").ne(1));
+		query.with(new Sort(new Order(Direction.DESC, "createTime")));
+		QuestionVO vo = findOneByQuery(query);
+		if(vo != null && (Integer)vo.getUserID() != null){
+			vo.setNickName(appUserService.findUserNameByUserId(vo.getUserID()));
+			vo.setTypeName(qASectionService.findTypeName(vo.getType()));
+		}
+		return vo;
+	}
+	//审核
+	public void audit(String id, Integer status,String content ,Integer type) throws Exception {
+		Admin admin = (Admin) SecurityUtils.getSubject().getSession().getAttribute(Constant.USER_SESSION);
+		Query query = new Query();
+		query.addCriteria(Criteria.where("id").is(id));
+		QuestionVO questionVO = findOneById(id);
+		if(questionVO != null&& questionVO.getEditorType() == 1 && admin != null && (Integer)admin.getId() != null && admin.getId() != 1){
+			if(admin.getId() == questionVO.getUserID()){
+				throw new Exception("自己不能审核自己发布的QA");
+			}
+		}
+		//发送推送
+		if(status != null && status.equals(1)){
+			iMNewsService.userBehaviorPushMessage(MessTypeFactory.MESSAGE_THROUGH,questionVO.getUserID(),null,id);
+		}else if(status != null && status.equals(2)){
+			iMNewsService.userBehaviorPushMessage(MessTypeFactory.MESSAGE_NOT_THROUGH,questionVO.getUserID(),null,id);
+		}
+		
+		Update update = Update.update("status",status);
+		if(questionVO != null && questionVO.getReleaseTime() != null){
+			update.update("releaseTime", new Date());
+		}else{
+			update.addToSet("releaseTime", new Date());
+		}
+		updateFirst(query, update);
+		if(content != null && !content.equals("") && status.equals(2)){
+			if(admin != null){
+				xunxinAuditInformationRecordService.volunteerAdopt(admin.getId(), id, type, status, content, "admin");
+			}
+		}
+	}
+	
+	/**
+     * 获取来源
+     * @param linked_url
+     * @return
+     */
+    public String getSource(String linked_url) {
+
+/**********************************************************************************
+    PC绔殑鏂伴椈
+**********************************************************************************/ 
+        
+        if(linked_url.contains("people")){
+            return "人民网";
+        }
+        if(linked_url.contains("tvmao")){
+            return "电视猫";
+        }
+        if(linked_url.contains("cctv")){
+            return "央视网";
+        }
+        if(linked_url.contains("xinhua")){
+            return "新华网";
+        }
+        if(linked_url.contains("china")){
+            return "中国网";
+        }
+        if(linked_url.contains("rednet")){
+            return "红网";
+        }
+        if(linked_url.contains("toutiao")){
+            return "今日头条";
+        }
+        if(linked_url.contains("qq")){
+            return "腾讯新闻";
+        }
+        if(linked_url.contains("sohu")){
+            return "搜狐新闻";
+        }
+        if(linked_url.contains("163")){
+            return "网易新闻";
+        }
+        if(linked_url.contains("baidu")){
+            return "百度新闻";
+        }
+        if(linked_url.contains("ifeng")){
+            return "凤凰新闻";
+        }
+        if(linked_url.contains("sina")){
+            return "新浪新闻";
+        }
+        if(linked_url.contains("douban")){
+            return "豆瓣";
+        }
+        if(linked_url.contains("zhihu")){
+            return "知乎";
+        }
+        
+        return "其他";
+    }
+
+    /**
+     * 获取链接content
+     * @param body
+     * @return
+     */
+    public String getContent(String linked_url,Document body) {
+        String content = "";
+        
+        Elements pElement = body.getElementsByTag("p");
+        
+        String pContent = pElement.text().trim() + "\r\n";
+        if(pContent != null && !StringUtils.trim(pContent).equals("")) {
+            if(pContent.length()<500){
+                content = pContent;
+            }else {
+                content = pContent.substring(0, 500);
+            }
+        }else {
+            content = "未获取到正文,请点击查看!";
+        }
+        
+        return content;
+    }
+    //观点置顶
+	public void updateAnswer(String questionId, String anser) {
+		Query query = new Query();
+		query.addCriteria(Criteria.where("id").is(questionId));
+		Update update = Update.update("answers",anser);
+		updateFirst(query, update);
+	}
+
+
+    
+
+}

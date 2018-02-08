@@ -1,0 +1,94 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"   
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.xunxin.dao.app.user.UserAuthenticationDao">
+	
+	<select id="isAuthentication" parameterType="com.xunxin.vo.sys.PageData" resultType="com.xunxin.vo.user.UserAuthentication">
+		SELECT * from xunxin_user_authentication 
+		where authType = #{authType}
+		<if test=" userId != null and userId != '' ">
+			and userId = #{userId}
+		</if>
+	</select>
+	
+	<select id="getAll" parameterType="java.lang.Integer" resultType="com.xunxin.vo.user.UserAuthentication">
+		SELECT * from xunxin_user_authentication 
+		where userId = #{userId}
+	</select>
+	
+	<select id="findUserById" resultType="com.xunxin.vo.user.UserAuthentication">
+		SELECT * from xunxin_user_authentication 
+		where id = #{id}
+	</select>
+	<select id="findPageList" parameterType="com.xunxin.vo.user.UserAuthentication" resultType="com.xunxin.vo.user.UserAuthentication">
+		SELECT
+				a.id,
+				a.authInfo,
+				a.authType,
+				a.authState,
+				a.extendInfo,
+				a.authTime,
+				a.userId,
+				a.authRemark,
+				u.nickName
+			FROM
+				xunxin_user_authentication a
+			LEFT JOIN xunxin_user u ON u.uid = a.userId
+ 		<where>
+			1=1
+			<if test="id != null and id != ''">
+				AND a.id = #{id}
+			</if>
+			<if test="authInfo != null and authInfo != ''">
+				AND a.authInfo like concat('%',#{authInfo},'%') 
+			</if>
+			<if test="authType != null and authType != ''">
+				AND a.authType = #{authType}
+			</if>
+			<if test="authState != null ">
+				AND a.authState = #{authState}
+			</if>
+			<if test="extendInfo != null and extendInfo != ''">
+				AND a.extendInfo like concat('%',#{extendInfo},'%')
+			</if>
+			<if test="authRemark != null and authRemark != ''">
+				AND a.authRemark like concat('%',#{authRemark},'%') 
+			</if>
+			<if test="authTime != null and authTime != ''">
+				AND a.authTime BETWEEN #{beginYear} AND #{endYear}
+			</if>
+		</where> 
+		ORDER BY a.authTime DESC
+	</select>
+	<select id="findOneById" parameterType="java.lang.Integer" resultType="com.xunxin.vo.user.UserAuthentication">
+		SELECT
+				a.id,
+				a.authInfo,
+				a.authType,
+				a.authState,
+				a.extendInfo,
+				a.authTime,
+				a.userId,
+				a.authRemark,
+				u.nickName
+			FROM
+				xunxin_user_authentication a
+			LEFT JOIN xunxin_user u ON u.uid = a.userId
+		where a.id = #{id}
+	</select>
+	<update id="authenticationManagerExamine" parameterType="com.xunxin.vo.user.UserAuthentication">
+		 UPDATE xunxin_user_authentication a
+				SET a.authState = #{authState}
+				WHERE
+			id = #{id}
+		
+	</update>
+	
+	
+	<select id="model" resultType="com.xunxin.vo.user.UserAuthentication">
+		SELECT * from xunxin_user_authentication 
+		where userId = #{userId} and authType = #{type}
+	</select>
+	
+
+</mapper>

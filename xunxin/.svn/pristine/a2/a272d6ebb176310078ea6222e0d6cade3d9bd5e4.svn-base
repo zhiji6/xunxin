@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"   
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.xunxin.dao.sys.SystemAreaDao">
+
+	<select id="getAllArea" resultType="com.xunxin.vo.sys.SystemArea">
+		SELECT a.id,a.code,a.name,a.type from xunxin_sys_area a ORDER BY a.id ASC;
+	</select>
+
+	<insert id="save" parameterType="com.xunxin.vo.sys.SystemArea">
+		INSERT INTO xunxin_sys_area (code, name, type)
+			VALUES
+			(#{code}, 
+			#{name}, 
+			#{type}
+			)
+	</insert>
+	
+	<update id="update" parameterType="java.lang.Integer">
+		UPDATE xunxin_sys_area a set 
+		a.id = #{newId} where id = #{preId}
+	</update>
+	
+
+</mapper>

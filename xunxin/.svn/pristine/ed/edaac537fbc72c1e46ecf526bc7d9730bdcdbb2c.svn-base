@@ -1,0 +1,216 @@
+package com.xunxin.service.app;
+
+import java.util.Date;
+import java.util.List;
+import java.util.Map;
+
+import org.apache.commons.lang3.StringUtils;
+import org.apache.log4j.Logger;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+import com.alibaba.fastjson.JSON;
+import com.alibaba.fastjson.JSONObject;
+import com.alipay.api.domain.ExtendParams;
+import com.xunxin.constants.ExpConstants;
+import com.xunxin.dao.app.user.AppUserDao;
+import com.xunxin.dao.pay.RechargeRecordDao;
+import com.xunxin.dao.pay.ThirdPayDao;
+import com.xunxin.service.app.user.UserAmountChangeRecordService;
+import com.xunxin.vo.account.RechargeRecord;
+import com.xunxin.vo.pay.ThirdPayBean;
+import com.xunxin.vo.sys.PageData;
+import com.xunxin.vo.user.UserEntity;
+
+@Service("rechargeRecordService")
+public class RechargeRecordService {
+
+	private static final Logger log = Logger.getLogger(RechargeRecordService.class);
+	
+	@Autowired
+	private AppUserDao appUserDao;
+	@Autowired
+	private ThirdPayDao thirdPayDao;
+	@Autowired
+	private RechargeRecordDao rechargeRecordDao;
+	@Autowired
+	private UserAmountChangeRecordService userAmountChangeRecord;
+	/**
+	 * 支付宝生成订单
+	 * @param body
+	 * @param extendParams
+	 * @return
+	 */
+	public boolean generatedBills(String order_no, ExtendParams extendParams) {
+		try {
+			if(StringUtils.trim(order_no).equals("")) {
+				log.info("支付宝请求交易response为空");
+				return false;
+			}
+			//拓展参数 用来生成订单
+			String Params = extendParams.getSysServiceProviderId();
+			int userId = Integer.parseInt(Params.split("\\|")[0]);
+			int third_pay_id = Integer.parseInt(Params.split("\\|")[1]);
+			UserEntity user = appUserDao.findById(userId);
+			RechargeRecord record = new RechargeRecord(userId,order_no,third_pay_id,user.getAmount(),new Date(),UserEntity.NORMAL);	 
+			rechargeRecordDao.saveBill(record);
+			log.info("支付宝订单生成");
+			return true;
+		} catch (Exception e) {
+			log.error("支付宝订单生成失败" + e.getMessage());
+		} 
+		return false;
+	}
+
+	/**
+	 * 支付宝更新订单
+	 * 
+	 * @param trade_amount
+	 * @param passbackParams
+	 * @param order_no
+	 * @return
+	 */
+	public boolean updateBill(Double trade_amount, String passbackParams, String order_no) {
+		try {
+			if(StringUtils.trim(passbackParams).equals("")) {
+				log.info("支付宝请求交易response为空");
+				return false;
+			}
+			//拓展参数 用来生成订单
+			int userId = Integer.parseInt(passbackParams.split("\\|")[0]);
+			String third_pay_id = passbackParams.split("|")[1];
+			UserEntity user = appUserDao.findById(userId);
+			Double order_before = user.getAmount();		//充值前余额
+			Double order_end = order_before + trade_amount;		//充值后金额
+			ThirdPayBean bean = thirdPayDao.findByPayId(Integer.parseInt(third_pay_id));
+			String third_name = bean.getThird_name();
+			String remark = "用户:" + user.getPhone() + "---" + third_name + "充值" + trade_amount + "元";
+			RechargeRecord record =  rechargeRecordDao.findByOrderNo(order_no);
+			record.setTradeAmount(trade_amount);
+			record.setOrderEnd(order_end);
+			record.setOrderAccountingTime(new Date());
+			record.setOrderState(UserEntity.UNUSUAL);
+			record.setRemark(remark);
+			//更新账单
+			rechargeRecordDao.updateBill(record);
+			//更新账户余额
+			user.setAmount(order_end);
+			appUserDao.updateAccount(user);
+			log.info("支付宝订单生成");
+			return true;
+		} catch (Exception e) {
+			log.error("支付宝订单生成失败" + e.getMessage());
+		} 
+		return false;
+	}
+
+	/**
+	 * 解析支付宝转账返回信息
+	 * 
+	 * @param body
+	 * @param passbackParams 
+	 * @return
+	 */
+	public String createTransfer(String body, String passbackParams) {
+		String message = "";
+		JSONObject object = JSON.parseObject(body);
+		String transfer_response = object.getString("alipay_fund_trans_toaccount_transfer_response");
+		JSONObject transfer_object = JSON.parseObject(transfer_response);
+		String code = transfer_object.getString("code");
+		if(code.equals("10000")) {
+			String msg = transfer_object.getString("msg");
+			message = msg;
+		}else if(code.equals("20000")){
+			String sub_msg = transfer_object.getString("sub_msg");
+			message = sub_msg;
+		}
+		return message;
+	}
+
+	/**
+	 * 微信支付生成订单
+	 * 
+	 * @param response
+	 * @param attach
+	 * @param amount 
+	 * @param out_trade_no 
+	 */
+	public boolean generatedBills(Map<String, String> response, String attach, String amount, String out_trade_no) {
+		try {
+			if(response.size() <= 0) {
+				log.info("微信支付请求交易response为空");
+				return false;
+			}
+			//拓展参数 用来生成订单
+			int userId = Integer.parseInt(attach.split("\\|")[0]);
+			int third_pay_id = Integer.parseInt(attach.split("\\|")[1]);
+			UserEntity user = appUserDao.findById(userId);
+			
+			Double trade_amount = Double.parseDouble(amount);  //充值金額
+			Double order_before = 0.0;		//充值前余额
+			if(user != null && user.getAmount() != null){
+				order_before=user.getAmount();
+			}
+			Double order_end = order_before + trade_amount;		//充值后金额
+			RechargeRecord record = new RechargeRecord(userId,out_trade_no,third_pay_id,order_before,new Date(),UserEntity.UNUSUAL);	
+			record.setTradeAmount(trade_amount);
+			record.setOrderEnd(order_end);
+			rechargeRecordDao.saveBill(record);
+			log.info("微信订单生成");
+			return true;
+		} catch (Exception e) {
+			log.error("微信订单生成失败" + e.getMessage());
+		} 
+		return false;
+	}
+	
+
+	public static void main(String[] args) {
+		String str = "alipay_sdk=alipay-sdk-java-dynamicVersionNo&app_id=2017102509517770&biz_content=%7B%22out_trade_no%22%3A%2220171112134406557000%22%2C%22passback_params%22%3A%2213%7C18%22%2C%22product_code%22%3A%22QUICK_MSECURITY_PAY%22%2C%22subject%22%3A%22%E5%BE%AA%E5%BF%83%E7%A7%91%E6%8A%80%22%2C%22timeout_express%22%3A%2230m%22%2C%22total_amount%22%3A%2210.00%22%7D&charset=UTF-8&format=JSON&method=alipay.trade.app.pay&notify_url=http%3A%2F%2Fwww.xunxinkeji.cn%2Fapi%2Fpay%2Falipay_notify&sign=RkSFhHwLwxpf1ZkUnaK51xzcDW1sQBxfFxwpsb3iWQlBaGu5mUb6wY9qzGvc5TDjk7o6AL0lLb1cNA0bioPnffvjOZozjbftW0PCUAtmgPYQiN%2F8Z%2F8Wrvnpw7S7hhupmSvXqgKUNv3chIueWLC77p8NPBkzDxtS%2B9wOVFTOLmiETKrB%2Bi2Za31d2Op1AqboUVcOPnWHwRHkCgjRjMVmqT%2BP4RaKnAvxoAY32G0B%2FZmQ9EELoBicc%2FDWO647nkzfDb6fGkqAgSNVx%2FfKPtJzfL2wRGquLNilbQxYVM55QGORooKznATyiRxxCwpDrfJPH3CAF0nSaXfCylhi9xqxyg%3D%3D&sign_type=RSA2&timestamp=2017-11-12+13%3A44%3A10&version=1.0";
+		String str1 = "alipay_sdk=alipay-sdk-java-dynamicVersionNo&app_id=2017102509517770";
+//		JSONArray pay_object = JSON.parseArray(str);
+		JSONObject pay_object1 = JSON.parseObject(str1);
+		String order_no = pay_object1.getString("out_trade_no");
+//		System.out.println(pay_object);
+		System.out.println(order_no);
+	}
+
+    public List<RechargeRecord> recharge_list(PageData pd) {
+        return rechargeRecordDao.findRechargelist(pd);
+    }
+
+    public RechargeRecord findByOrderId(int id) {
+        return rechargeRecordDao.findByOrderId(id);
+    }
+
+    public void delete(PageData pd) {
+        rechargeRecordDao.delete(pd);
+    }
+	/**
+	 * 微信支付订单更新
+	 * 
+	 * @param response
+	 * @param attach
+	 * @param amount 
+	 * @param out_trade_no 
+	 */
+	public boolean updateBillWeiXin(Double returnAmount, String order_no) {
+		try {
+			RechargeRecord rechargeRecord = rechargeRecordDao.findRechargeRecordByOrderNo(order_no);
+			if(rechargeRecord != null && (Integer)rechargeRecord.getUserId() != null){
+				rechargeRecordDao.updateBillState(order_no);
+				Double amount = appUserDao.queryUserAmount(rechargeRecord.getUserId());
+				userAmountChangeRecord.UserAmountChangeRecord("充值", rechargeRecord.getUserId(), ExpConstants.INCOME, returnAmount);
+				appUserDao.user_amount_change(rechargeRecord.getUserId(),returnAmount+amount);
+				log.info("微信订单更新成功");
+				return true;
+			}else{
+				return false;
+			}
+		} catch (Exception e) {
+			log.error("微信订单生成失败" + e.getMessage());
+		} 
+		return false;
+	}
+	
+}

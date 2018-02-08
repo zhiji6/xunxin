@@ -1,0 +1,329 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"   
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.xunxin.dao.app.user.AppUserDao">
+
+	<select id="findByPhone" parameterType="java.lang.String" resultType="java.lang.Integer">
+		  SELECT COUNT(phone) 
+		  FROM xunxin_user u 
+		  WHERE u.phone=#{phone} 
+	</select>
+	
+	<select id="findById" parameterType="java.lang.Integer" resultType="com.xunxin.vo.user.UserEntity">
+		  SELECT *  
+		  FROM xunxin_user u 
+		  WHERE u.uid=#{userId} 
+	</select>
+	
+	<select id="findOne" parameterType="java.lang.String" resultType="com.xunxin.vo.user.UserEntity">
+	  	SELECT * 
+		FROM xunxin_user u 
+		WHERE 
+		<if test=" phone != null and phone != '' ">
+	 		u.phone=#{phone} 
+		</if>
+	</select>
+	
+	<!-- 获取用户认证程度 -->
+	<select id="getCertificationDegree" parameterType="java.lang.String" resultType="java.lang.Integer">
+	  	SELECT u.certification_degree 
+		FROM xunxin_user u 
+		WHERE 
+		<if test=" phone != null and phone != '' ">
+	 		u.phone=#{phone} 
+		</if>
+	</select>
+	
+	<!-- 是否进行实名认证 -->
+	<select id="is_authentication" parameterType="java.lang.Integer" resultType="java.lang.Integer">
+	  	SELECT u.isAuthentication
+		FROM xunxin_user u 
+		WHERE 
+		<if test=" userId != null and userId != '' ">
+	 		u.uid=#{userId} 
+		</if>
+	</select>
+	
+	<insert id="save" parameterType="com.xunxin.vo.user.UserEntity" useGeneratedKeys="true" keyProperty="uid">
+		<selectKey resultType="java.lang.Integer" order="AFTER" keyProperty="uid">
+			SELECT LAST_INSERT_ID()
+		</selectKey> 
+		INSERT INTO xunxin_user (phone,ID,grade,password,createTime) 
+		VALUES(#{phone},#{ID},#{grade},#{password},#{createTime})
+	</insert>
+	
+	<update id="update_pwd" parameterType="java.lang.String">
+		UPDATE xunxin_user
+		SET password = #{newWord}
+		WHERE
+			phone = #{phone}
+	</update>
+	
+	<update id="updateAccount" parameterType="com.xunxin.vo.user.UserEntity">
+		UPDATE xunxin_user u
+		SET u.amount = #{order_end}
+		WHERE
+			u.uid = #{userId}
+	</update>
+	
+	<update id="setup_password">
+		UPDATE xunxin_user u
+		SET u.password = #{password}
+		WHERE
+			u.uid = #{userId}
+	</update>
+	
+	<update id="complete_basics_information" parameterType="com.xunxin.vo.condition.UserCondition" >
+		UPDATE xunxin_user u
+			SET u.name = #{name},
+			 u.nickName = #{nickname},
+			 u.age = #{age},
+			 u.sex = #{sex},
+			 u.gender = #{gender},
+			 u.sexualOrientation = #{sexualOrientation},
+			 u.address = #{address},
+			 u.height =  #{height},
+			 u.profession = #{profession},
+			 u.trade =  #{trade},
+			 u.position =  #{position},
+			 u.education =  #{education},
+			 u.income =  #{income},
+			 u.williamsCollege =  #{williamsCollege},
+			 u.relationshipStatus =  #{relationshipStatus},
+			 u.makeFriendWay =  #{makeFriendWay},
+			 u.isCompleteBasic = #{isCompleteBasic}
+			WHERE
+				u.uid = #{userId}
+	</update>
+	
+	<update id="complete_particular_information" parameterType="com.xunxin.vo.sys.PageData" >
+		UPDATE xunxin_user u
+		set
+				<if test=" introduce != null and introduce != ''">
+					u.introduce = #{introduce,jdbcType=VARCHAR},
+				</if>
+				<if test=" housingConditions != null and housingConditions != ''">
+					u.housingConditions = #{housingConditions,jdbcType=VARCHAR},
+				</if>
+				<if test=" trafficTools != null and trafficTools != ''">
+					u.trafficTools = #{trafficTools,jdbcType=VARCHAR},
+				</if>
+				<if test=" weight != null and weight != ''">
+					u.weight = #{weight,jdbcType=INTEGER},
+				</if>
+				<if test=" nation != null and nation != ''">
+					u.nation = #{nation,jdbcType=VARCHAR},
+				</if>
+				<if test=" nationality != null and nationality != ''">
+					u.nationality = #{nationality,jdbcType=VARCHAR},
+				</if>
+				<if test=" nativePlace != null and nativePlace != ''">
+					u.nativePlace = #{nativePlace,jdbcType=VARCHAR},
+				</if>
+				<if test=" censusRegister != null and censusRegister != ''">
+					u.censusRegister = #{censusRegister,jdbcType=VARCHAR},
+				</if>
+				<if test=" familyOrder != null and familyOrder != ''">
+					u.familyOrder = #{familyOrder,jdbcType=VARCHAR},
+				</if>
+				<if test=" haveChild != null and haveChild != ''">
+					u.haveChild = #{haveChild,jdbcType=VARCHAR},
+				</if>
+				<if test=" religiousBelief != null and religiousBelief != ''">
+					u.religiousBelief = #{religiousBelief,jdbcType=VARCHAR},
+				</if>
+				<if test=" constellation != null and constellation != ''">
+					u.constellation = #{constellation,jdbcType=VARCHAR},
+				</if>
+				<if test=" zodiac != null and zodiac != ''">
+					u.zodiac = #{zodiac,jdbcType=VARCHAR},
+				</if>
+				<if test=" blood != null and blood != ''">
+					u.blood = #{blood,jdbcType=VARCHAR}
+				</if>
+			WHERE
+				u.uid = #{userId}
+	</update>
+	
+	<update id="user_exp_change" parameterType="java.lang.Integer" >
+		UPDATE xunxin_user u
+		set 
+			u.userExp = #{userExp}
+		WHERE
+			u.uid = #{userId}	
+	</update>
+	
+	<update id="edit_user_information" parameterType="com.xunxin.vo.sys.PageData" >
+		UPDATE xunxin_user u
+		set 
+				<if test=" name != null and name != '' ">
+					u.name = #{name,jdbcType=VARCHAR}
+				</if>
+				<if test=" nickName != null and nickName != '' ">
+					u.nickName = #{nickName,jdbcType=VARCHAR}
+				</if>
+				<if test=" gender != null and gender != '' ">
+					u.gender = #{gender,jdbcType=VARCHAR}
+				</if>
+				<if test=" age != null and age != '' ">
+					u.age = #{age,jdbcType=INTEGER}
+				</if>
+				<if test=" sexualOrientation != null and sexualOrientation != '' ">
+					u.sexualOrientation = #{sexualOrientation,jdbcType=VARCHAR}
+				</if>
+				<if test=" address != null and address != '' ">
+					u.address = #{address,jdbcType=VARCHAR}
+				</if>
+				<if test=" height != null and height != '' ">
+					u.height = #{height,jdbcType=INTEGER}
+				</if>
+				<if test=" profession != null and profession != '' ">
+					u.profession = #{profession,jdbcType=VARCHAR}
+				</if>
+				<if test=" trade != null and trade != '' ">
+					u.trade = #{trade,jdbcType=VARCHAR}
+				</if>
+				<if test=" position != null and position != '' ">
+					u.position = #{position,jdbcType=VARCHAR}
+				</if>
+				<if test=" income != null and income != '' ">
+					u.income = #{income,jdbcType=VARCHAR}
+				</if>
+				<if test=" education != null and education != '' ">
+					u.education = #{education,jdbcType=VARCHAR}
+				</if>
+				<if test=" williamsCollege != null and williamsCollege != '' ">
+					u.williamsCollege = #{williamsCollege,jdbcType=VARCHAR}
+				</if>
+				<if test=" relationshipStatus != null and relationshipStatus != '' ">
+					u.relationshipStatus = #{relationshipStatus,jdbcType=VARCHAR}
+				</if>
+				<if test=" makeFriendWay != null and makeFriendWay != '' ">
+					u.makeFriendWay = #{makeFriendWay,jdbcType=VARCHAR}
+				</if>
+				<if test=" introduce != null and introduce != '' ">
+					u.introduce = #{introduce,jdbcType=VARCHAR}
+				</if>
+				<if test=" housingConditions != null and housingConditions != '' ">
+					u.housingConditions = #{housingConditions,jdbcType=VARCHAR}
+				</if>
+				<if test=" trafficTools != null and trafficTools != '' ">
+					u.trafficTools = #{trafficTools,jdbcType=VARCHAR}
+				</if>
+				<if test=" weight != null and weight != '' ">
+					u.weight = #{weight,jdbcType=INTEGER}
+				</if>
+				<if test=" nation != null and nation != '' ">
+					u.nation = #{nation,jdbcType=VARCHAR}
+				</if>
+				<if test=" nationality != null and nationality != '' ">
+					u.nationality = #{nationality,jdbcType=VARCHAR}
+				</if>
+				<if test=" nativePlace != null and nativePlace != '' ">
+					u.nativePlace = #{nativePlace,jdbcType=VARCHAR}
+				</if>
+				<if test=" censusRegister != null and censusRegister != '' ">
+					u.censusRegister = #{censusRegister,jdbcType=VARCHAR}
+				</if>
+				<if test=" familyOrder != null and familyOrder != '' ">
+					u.familyOrder = #{familyOrder,jdbcType=VARCHAR}
+				</if>
+				<if test=" haveChild != null and haveChild != '' ">
+					u.haveChild = #{haveChild,jdbcType=VARCHAR}
+				</if>
+				<if test=" religiousBelief != null and religiousBelief != '' ">
+					u.religiousBelief = #{religiousBelief,jdbcType=VARCHAR}
+				</if>
+				<if test=" constellation != null and constellation != '' ">
+					u.constellation = #{constellation,jdbcType=VARCHAR}
+				</if>
+				<if test=" zodiac != null and zodiac != '' ">
+					u.zodiac = #{zodiac,jdbcType=VARCHAR}
+				</if>
+				<if test=" blood != null and blood != '' ">
+					u.blood = #{blood,jdbcType=VARCHAR}
+				</if>
+			WHERE
+				u.uid = #{userId}
+	</update>
+	
+	
+	
+	<select id="findUserById" parameterType="java.lang.Integer" resultType="com.xunxin.vo.user.UserEntity">
+	  SELECT *  
+	  FROM xunxin_user u 
+	  WHERE u.uid=#{userId} 
+	</select>
+	
+	<select id="findUserPhoneByUserId" parameterType="java.lang.Integer" resultType="java.lang.String">
+		  SELECT 
+		  u.phone  
+		  FROM xunxin_user u 
+		  WHERE u.uid=#{userId} 
+	</select>
+	<select id="findAll"  resultType="com.xunxin.vo.user.UserEntity">
+	  	SELECT * 
+		FROM xunxin_user
+		where phone is not  null
+		and phone != ''
+	</select>
+		<select id="findUserListByAge" parameterType="java.lang.Integer" resultType="com.xunxin.vo.user.UserEntity">
+		  SELECT
+				*
+			FROM
+				xunxin_user u
+			WHERE
+				u.age BETWEEN (
+					SELECT
+						a.age - #{age}
+					FROM
+						xunxin_user a
+					WHERE
+						a.uid = #{userId}
+				)
+			AND (
+				SELECT
+					a.age + #{age}
+				FROM
+					xunxin_user a
+				WHERE
+					a.uid = #{userId}
+			)
+			AND u.uid != #{userId}
+			AND u.gender = (
+						SELECT
+							a.sexualOrientation
+						FROM
+							xunxin_user a
+						WHERE
+							a.uid = #{userId}
+					)
+	</select>
+		<select id="findUserGradeByUserId" parameterType="java.lang.Integer" resultType="java.lang.Integer">
+		  SELECT 
+		  u.grade  
+		  FROM xunxin_user u 
+		  WHERE u.uid=#{userId} 
+	</select>
+	<select id="findUserGenderByUserId" parameterType="java.lang.Integer" resultType="java.lang.String">
+		  SELECT u.gender 
+		  FROM xunxin_user u 
+		  WHERE u.uid=#{userId} 
+	</select>
+	<select id="findAllNotUserId" parameterType="java.lang.Integer" resultType="java.lang.Integer">
+		  SELECT u.uid 
+		  FROM xunxin_user u 
+		  WHERE u.uid != {userId} 
+	</select>
+		<select id="findUserListByUser" parameterType="java.util.List" resultType="com.xunxin.vo.im.UserMatch">
+		  SELECT u.uid AS userId,u.gender As gender,u.nickName As nickName 
+		  FROM xunxin_user u where u.uid in
+		   <foreach item="item" index="index" collection="list" open="(" separator="," close=")">  
+				  #{item}  
+			</foreach>
+	</select>
+		<select id="findCount"  resultType="java.lang.Integer">
+		  SELECT COUNT(phone) 
+		  FROM xunxin_user u 
+	</select>
+</mapper>

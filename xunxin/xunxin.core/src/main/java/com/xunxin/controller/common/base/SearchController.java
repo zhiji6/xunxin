@@ -1,0 +1,158 @@
+package com.xunxin.controller.common.base;
+
+import java.util.ArrayList;
+import java.util.List;
+
+import org.apache.commons.lang3.StringUtils;
+import org.apache.log4j.Logger;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.mongodb.core.query.Criteria;
+import org.springframework.data.mongodb.core.query.Query;
+import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.ResponseBody;
+
+import com.alibaba.fastjson.JSON;
+import com.alibaba.fastjson.JSONObject;
+import com.xunxin.config.LuceneEngineutil;
+import com.xunxin.controller.system.BaseController;
+import com.xunxin.service.ArecordService;
+import com.xunxin.service.app.qa.QACollectionRecordService;
+import com.xunxin.service.app.qa.QuestionService;
+import com.xunxin.vo.qa.QuestionVO;
+import com.xunxin.vo.sys.PageData;
+import com.xunxin.web.api.bean.Base;
+import com.xunxin.web.api.bean.Response;
+
+/**
+ * 
+ * Copyright © 2017 Xunxin Network Technology Co. Ltd.
+ *
+ * @Author Noseparte
+ * @Compile 2018年1月17日 -- 下午7:56:56
+ * @Version 1.0
+ * @Description
+ */
+@Controller
+@RequestMapping(value=Base.PATH+Base.Search.PATH)
+public class SearchController extends BaseController{
+
+    private final static Logger log = Logger.getLogger(SearchController.class);
+    
+    @Autowired
+    private QuestionService questionService;
+    @Autowired
+    private QACollectionRecordService qACollectionRecordService;
+    @Autowired
+    private ArecordService arecordService;
+    
+    /**
+     * 创建lucene索引
+     * 
+     * @param keyWord
+     * @return
+     */
+    @RequestMapping(value=Base.Search.CREATE_LUCENE_INDEX,method=RequestMethod.POST)
+    @ResponseBody
+    private Response create_lucene_index() {
+        log.info("infoMsg:--- 搜索开始");
+        Response reponse = this.getReponse();
+        PageData pd = new PageData<>();
+        List<PageData> pdLsit = new ArrayList<>();
+        try {
+            LuceneEngineutil.creatIndex();
+            log.info("infoMsg:--- 搜索结束");
+            return reponse.success();
+        } catch (Exception e) {
+            log.error("errorMsg:{--- 搜索结束:" + e.getMessage() + "---}");
+            return reponse.failure(e.getMessage());
+        }
+        
+    }
+    
+    
+    /**
+     * Lucene全文检索
+     * 
+     * @param keyWord
+     * @return
+     */
+    @RequestMapping(value=Base.Search.SEARCH_QUESTION_DETAIL,method=RequestMethod.POST)
+    @ResponseBody
+    private Response search_question_detail(@RequestParam("keyWord") String keyWord) {
+        log.info("infoMsg:--- Lucene全文检索开始");
+        Response reponse = this.getReponse();
+        List<PageData> pdLsit = new ArrayList<>();
+        try {
+            LuceneEngineutil.init();
+            List<String> results = LuceneEngineutil.search(keyWord);
+            if(!results.isEmpty()) {
+                for(String result : results) {
+                    JSONObject object = JSON.parseObject(result);
+                    String id = object.getString("id");
+                    String name = object.getString("name");
+                    PageData pd = new PageData<>();
+                    QuestionVO vo = questionService.findOneById(id);
+                    if(vo.getStatus() == 1){
+                        pd.put("id", id);
+                        pd.put("name", name);
+                        pd.put("content", vo.getContent());
+                        //收藏数
+                        Query collectionCountQuery = new Query().addCriteria(Criteria.where("id").is(vo.getId()));
+                        Integer collectionCount = qACollectionRecordService.findCountByQuery(collectionCountQuery);
+                        pd.put("collectionCount", collectionCount);
+                        //已选数
+                        Query selectQuery = new Query().addCriteria(Criteria.where("questionID").is(vo.getId()));
+                        Integer selectCount = arecordService.findCountByQuery(selectQuery);
+                        pd.put("selectCount", selectCount);
+                        
+                        pdLsit.add(pd);
+                    }
+                }
+            }
+            log.info("infoMsg:--- Lucene全文检索结束");
+            return reponse.success(pdLsit);
+        } catch (Exception e) {
+            log.error("errorMsg:{--- Lucene全文检索失败:" + e.getMessage() + "---}");
+            return reponse.failure(e.getMessage());
+        }
+        
+    }
+    
+    
+    /**
+     * Lucene检索名称
+     * 
+     * @param keyWord
+     * @return
+     */
+    @RequestMapping(value=Base.Search.SEARCH_QUESTION_NAME,method=RequestMethod.POST)
+    @ResponseBody
+    private Response search_question_name(@RequestParam("keyWord") String keyWord) {
+        log.info("infoMsg:--- Lucene全文检索开始");
+        Response reponse = this.getReponse();
+        List<PageData> pdLsit = new ArrayList<>();
+        try {
+            LuceneEngineutil.initialize();
+            List<String> results = LuceneEngineutil.lookup(keyWord);
+            if(!results.isEmpty()) {
+                for(String result : results) {
+                    if(!StringUtils.trim(result).equals("")){
+                        PageData pd = new PageData<>();
+                        pd.put("name", result.trim());
+                        pdLsit.add(pd);
+                    }
+                }
+            }
+            log.info("infoMsg:--- Lucene全文检索结束");
+            return reponse.success(pdLsit);
+        } catch (Exception e) {
+            log.error("errorMsg:{--- Lucene全文检索失败:" + e.getMessage() + "---}");
+            return reponse.failure(e.getMessage());
+        }
+        
+    }
+    
+}

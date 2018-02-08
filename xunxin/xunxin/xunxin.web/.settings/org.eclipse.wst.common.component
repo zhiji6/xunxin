@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?><project-modules id="moduleCoreId" project-version="1.5.0">
+    <wb-module deploy-name="xunxin.web-0.0.1-SNAPSHOT">
+        <wb-resource deploy-path="/" source-path="/src/main/webapp" tag="defaultRootSource"/>
+        <wb-resource deploy-path="/WEB-INF/classes" source-path="/src/main/java"/>
+        <wb-resource deploy-path="/WEB-INF/classes" source-path="/resources"/>
+        <dependent-module archiveName="xunxin.vo.jar" deploy-path="/WEB-INF/lib" handle="module:/resource/xunxin.vo/xunxin.vo">
+            <dependency-type>uses</dependency-type>
+        </dependent-module>
+        <dependent-module archiveName="xunxin.util.jar" deploy-path="/WEB-INF/lib" handle="module:/resource/xunxin.util/xunxin.util">
+            <dependency-type>uses</dependency-type>
+        </dependent-module>
+        <dependent-module archiveName="xunxin.mongodb.framework.jar" deploy-path="/WEB-INF/lib" handle="module:/resource/xunxin.mongo/xunxin.mongo">
+            <dependency-type>uses</dependency-type>
+        </dependent-module>
+        <dependent-module archiveName="xunxin.core.jar" deploy-path="/WEB-INF/lib" handle="module:/resource/xunxin.core/xunxin.core">
+            <dependency-type>uses</dependency-type>
+        </dependent-module>
+        <dependent-module archiveName="xunxin.api.jar" deploy-path="/WEB-INF/lib" handle="module:/resource/xunxin.api/xunxin.api">
+            <dependency-type>uses</dependency-type>
+        </dependent-module>
+        <property name="java-output-path" value="/MongodbShrioFramework/target/classes"/>
+        <property name="context-root" value="xunxin.web"/>
+    </wb-module>
+</project-modules>
